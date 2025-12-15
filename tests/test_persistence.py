@@ -315,6 +315,112 @@ class TestPersistenceService:
             assert len(events) == 2
 
 
+class TestEventJournal:
+    """Tests for event journal and audit trails."""
+
+    def test_get_run_timeline(self, temp_db) -> None:
+        """Run timeline should be retrievable in order."""
+        from helixops.storage.event_journal import EventJournal
+
+        with temp_db.get_session() as session:
+            from helixops.storage.repository import (
+                ExecutionRunRepository,
+                ExecutionEventRepository,
+            )
+            from datetime import datetime, timedelta
+
+            run_repo = ExecutionRunRepository(session)
+            run_repo.save(run_id="run-1", workflow_id="wf-1", state="RUNNING")
+
+            event_repo = ExecutionEventRepository(session)
+            base_time = datetime.utcnow()
+            for i in range(3):
+                event = ExecutionEventModel(
+                    event_id=f"event-{i}",
+                    run_id="run-1",
+                    event_type="TASK_RUNNING",
+                    timestamp=base_time + timedelta(seconds=i),
+                )
+                event_repo.save(event)
+
+        with temp_db.get_session() as session:
+            journal = EventJournal(session)
+            timeline = journal.get_run_timeline("run-1")
+
+            assert len(timeline) == 3
+            # Verify chronological order
+            assert timeline[0].timestamp <= timeline[1].timestamp
+            assert timeline[1].timestamp <= timeline[2].timestamp
+
+    def test_get_failure_events(self, temp_db) -> None:
+        """Failure events should be queryable."""
+        from helixops.storage.event_journal import EventJournal
+
+        with temp_db.get_session() as session:
+            from helixops.storage.repository import (
+                ExecutionRunRepository,
+                ExecutionEventRepository,
+            )
+
+            run_repo = ExecutionRunRepository(session)
+            run_repo.save(run_id="run-1", workflow_id="wf-1", state="FAILED")
+
+            event_repo = ExecutionEventRepository(session)
+            events = [
+                ("TASK_RUNNING", "run-1"),
+                ("TASK_FAILED", "run-1"),
+                ("RUN_FAILED", "run-1"),
+            ]
+
+            for i, (event_type, run_id) in enumerate(events):
+                event = ExecutionEventModel(
+                    event_id=f"event-{i}",
+                    run_id=run_id,
+                    event_type=event_type,
+                )
+                event_repo.save(event)
+
+        with temp_db.get_session() as session:
+            journal = EventJournal(session)
+            failures = journal.get_failure_events("run-1")
+
+            assert len(failures) == 2
+            failure_types = {e.event_type for e in failures}
+            assert "TASK_FAILED" in failure_types
+            assert "RUN_FAILED" in failure_types
+
+    def test_verify_event_completeness(self, temp_db) -> None:
+        """Event completeness should be verifiable."""
+        from helixops.storage.event_journal import EventJournal
+
+        with temp_db.get_session() as session:
+            from helixops.storage.repository import (
+                ExecutionRunRepository,
+                ExecutionEventRepository,
+            )
+
+            run_repo = ExecutionRunRepository(session)
+            run_repo.save(run_id="run-1", workflow_id="wf-1", state="SUCCEEDED")
+
+            event_repo = ExecutionEventRepository(session)
+            for event_type in ["RUN_STARTED", "TASK_RUNNING", "TASK_SUCCEEDED", "RUN_SUCCEEDED"]:
+                event = ExecutionEventModel(
+                    event_id=f"event-{event_type}",
+                    run_id="run-1",
+                    event_type=event_type,
+                )
+                event_repo.save(event)
+
+        with temp_db.get_session() as session:
+            journal = EventJournal(session)
+            completeness = journal.verify_event_completeness("run-1")
+
+            assert completeness["total_events"] == 4
+            assert completeness["has_run_start"] is True
+            assert completeness["has_run_end"] is True
+            assert completeness["is_complete"] is True
+
+
 class TestPersistenceSurvivesRestart:
     """Tests that persistence survives process restart."""
 
