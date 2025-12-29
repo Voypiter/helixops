@@ -306,6 +306,93 @@ class TestCrashRecoveryManager:
             assert len(to_requeue) == 2
 
 
+class TestReconciliationService:
+    """Tests for reconciliation and recovery diagnostics."""
+
+    def test_reconcile_run_with_audit_trail(self, temp_db) -> None:
+        """Should reconcile run with complete audit trail."""
+        from helixops.recovery.reconciliation import ReconciliationService
+
+        with temp_db.get_session() as session:
+            run_repo = ExecutionRunRepository(session)
+            run_repo.save(run_id="run-1", workflow_id="wf-recovery", state="RUNNING")
+
+            attempt_repo = TaskAttemptRepository(session)
+            attempt = TaskAttemptModel(
+                attempt_id="attempt-1",
+                run_id="run-1",
+                task_id="task-1",
+                attempt_number=1,
+                state="RUNNING",
+            )
+            attempt_repo.save(attempt)
+
+            event_repo = ExecutionEventRepository(session)
+            base_time = datetime.utcnow()
+            for i, event_type in enumerate(["RUN_STARTED", "TASK_PENDING", "TASK_RUNNING"]):
+                event = ExecutionEventModel(
+                    event_id=f"event-{event_type}",
+                    run_id="run-1",
+                    task_id="task-1" if event_type.startswith("TASK") else None,
+                    event_type=event_type,
+                    timestamp=base_time + timedelta(milliseconds=i),
+                )
+                event_repo.save(event)
+
+        with temp_db.get_session() as session:
+            service = ReconciliationService(session)
+            result = service.reconcile_run("run-1")
+
+            assert result["recovered"] is True
+            assert result["statistics"]["requeued"] == 1
+            assert "report" in result
+            assert "diagnostics" in result
+
+    def test_reconciliation_summary(self, temp_db) -> None:
+        """Should generate reconciliation summary."""
+        from helixops.recovery.reconciliation import ReconciliationService
+
+        with temp_db.get_session() as session:
+            run_repo = ExecutionRunRepository(session)
+            for i in range(2):
+                run_repo.save(run_id=f"run-{i}", workflow_id="wf-recovery", state="RUNNING")
+
+            attempt_repo = TaskAttemptRepository(session)
+            for i in range(2):
+                attempt = TaskAttemptModel(
+                    attempt_id=f"attempt-{i}",
+                    run_id=f"run-{i}",
+                    task_id=f"task-{i}",
+                    attempt_number=1,
+                    state="RUNNING",
+                )
+                attempt_repo.save(attempt)
+
+            event_repo = ExecutionEventRepository(session)
+            base_time = datetime.utcnow()
+            for run_idx in range(2):
+                for i, event_type in enumerate(["RUN_STARTED", "TASK_PENDING", "TASK_RUNNING"]):
+                    event = ExecutionEventModel(
+                        event_id=f"event-{run_idx}-{event_type}",
+                        run_id=f"run-{run_idx}",
+                        task_id=f"task-{run_idx}" if event_type.startswith("TASK") else None,
+                        event_type=event_type,
+                        timestamp=base_time + timedelta(milliseconds=run_idx * 100 + i),
+                    )
+                    event_repo.save(event)
+
+        with temp_db.get_session() as session:
+            service = ReconciliationService(session)
+            # Reconcile both runs
+            for i in range(2):
+                service.reconcile_run(f"run-{i}")
+
+            summary = service.get_reconciliation_summary()
+
+            assert summary["unique_runs_reconciled"] == 2
+            assert summary["task_decisions_made"] >= 2
+
+
 class TestRecoveryAuditTrail:
     """Tests for recovery audit trail."""
 
