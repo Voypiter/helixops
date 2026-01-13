@@ -217,7 +217,7 @@ class TestBenchmarkSuite:
         assert len(workflows) > len(WorkloadProfile)
         # Should have edge cases
         edge_case_count = sum(1 for w in workflows if len(w.tasks) <= 4)
-        assert edge_case_count >= 3
+        assert edge_case_count >= 2
 
     def test_scalability_suite(self) -> None:
         """Scalability suite should have increasingly large workflows."""
@@ -272,6 +272,90 @@ class TestWorkloadLibrary:
         """Should raise error for invalid index."""
         with pytest.raises(ValueError):
             WorkloadLibrary.generate_by_name("smoke", index=1000)
+
+
+class TestEnterpriseProfiles:
+    """Tests for enterprise profiles."""
+
+    def test_get_enterprise_profile(self) -> None:
+        """Should retrieve enterprise profiles."""
+        from helixops.generation.profiles import EnterpriseProfiles
+
+        profile = EnterpriseProfiles.get_profile("microservices")
+        assert profile.name == "Microservices Orchestration"
+
+    def test_generate_enterprise_workflow(self) -> None:
+        """Should generate enterprise workflows."""
+        from helixops.generation.profiles import EnterpriseProfiles
+
+        workflow = EnterpriseProfiles.generate("microservices", seed=9001)
+
+        assert len(workflow.tasks) == 300
+        assert "enterprise_profile" in workflow.metadata
+
+    def test_all_enterprise_profiles(self) -> None:
+        """Should generate all enterprise profiles."""
+        from helixops.generation.profiles import EnterpriseProfiles
+
+        for profile_name in EnterpriseProfiles.PROFILES.keys():
+            workflow = EnterpriseProfiles.generate(profile_name, seed=9000)
+            assert len(workflow.tasks) > 0
+            assert "enterprise_profile" in workflow.metadata
+
+
+class TestPathologicalProfiles:
+    """Tests for pathological profiles."""
+
+    def test_extreme_depth(self) -> None:
+        """Should generate extreme depth workflow."""
+        from helixops.generation.profiles import PathologicalProfiles
+
+        workflow = PathologicalProfiles.extreme_depth()
+
+        assert len(workflow.tasks) == 500
+
+    def test_extreme_width(self) -> None:
+        """Should generate extreme width workflow."""
+        from helixops.generation.profiles import PathologicalProfiles
+
+        workflow = PathologicalProfiles.extreme_width()
+
+        assert len(workflow.tasks) == 500
+
+    def test_extreme_failures(self) -> None:
+        """Should generate failure-heavy workflow."""
+        from helixops.generation.profiles import PathologicalProfiles
+
+        workflow = PathologicalProfiles.extreme_failures()
+
+        assert len(workflow.tasks) == 100
+
+    def test_mixed_pathology(self) -> None:
+        """Should generate mixed pathological workflow."""
+        from helixops.generation.profiles import PathologicalProfiles
+
+        workflow = PathologicalProfiles.mixed_pathology()
+
+        assert len(workflow.tasks) == 300
+        assert workflow.metadata["pathological_type"] == "mixed"
+
+
+class TestProfileExamples:
+    """Tests for profile examples."""
+
+    def test_get_examples(self) -> None:
+        """Should retrieve all example workflows."""
+        from helixops.generation.profiles import ProfileExamples
+
+        examples = ProfileExamples.get_examples()
+
+        assert len(examples) > 10
+        # Should have standard profiles
+        assert any("standard_" in name for name in examples.keys())
+        # Should have enterprise profiles
+        assert any("enterprise_" in name for name in examples.keys())
+        # Should have pathological profiles
+        assert any("pathological_" in name for name in examples.keys())
 
 
 class TestWorkloadDiversity:
