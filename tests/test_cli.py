@@ -257,6 +257,99 @@ class TestVersionCommand:
         assert "1.0.0" in result.stdout
 
 
+class TestOutputFormatters:
+    """Tests for output formatters."""
+
+    def test_json_format_result(self) -> None:
+        """Should format result as JSON."""
+        from helixops.cli.formatters import OutputFormatter
+        from helixops.cli.models import CLIResult, OutputFormat
+
+        result = CLIResult(
+            success=True,
+            message="Success",
+            data={"key": "value"},
+        )
+
+        output = OutputFormatter.format_result(result, OutputFormat.JSON)
+        data = json.loads(output)
+
+        assert data["success"] is True
+        assert data["message"] == "Success"
+        assert data["data"]["key"] == "value"
+
+    def test_text_format_result(self) -> None:
+        """Should format result as text."""
+        from helixops.cli.formatters import OutputFormatter
+        from helixops.cli.models import CLIResult, OutputFormat
+
+        result = CLIResult(
+            success=True,
+            message="Success",
+        )
+
+        output = OutputFormatter.format_result(result, OutputFormat.TEXT)
+
+        assert "Success" in output
+        assert "✓" in output
+
+    def test_error_formatter_json(self) -> None:
+        """Should format errors as JSON."""
+        from helixops.cli.formatters import ErrorFormatter
+        from helixops.cli.models import OutputFormat
+
+        output = ErrorFormatter.format_error(
+            "Something failed",
+            error_type="runtime",
+            details=["Detail 1", "Detail 2"],
+            format_type=OutputFormat.JSON,
+        )
+
+        data = json.loads(output)
+        assert data["error"] is True
+        assert len(data["details"]) == 2
+
+    def test_error_formatter_text(self) -> None:
+        """Should format errors as text."""
+        from helixops.cli.formatters import ErrorFormatter
+        from helixops.cli.models import OutputFormat
+
+        output = ErrorFormatter.format_error(
+            "Something failed",
+            error_type="runtime",
+            details=["Detail 1"],
+            format_type=OutputFormat.TEXT,
+        )
+
+        assert "Something failed" in output
+        assert "✗" in output
+
+    def test_success_formatter_json(self) -> None:
+        """Should format success as JSON."""
+        from helixops.cli.formatters import SuccessFormatter
+        from helixops.cli.models import OutputFormat
+
+        output = SuccessFormatter.format_success(
+            "Operation complete",
+            data={"count": 5},
+            format_type=OutputFormat.JSON,
+        )
+
+        data = json.loads(output)
+        assert data["success"] is True
+        assert data["data"]["count"] == 5
+
+    def test_exit_code_manager(self) -> None:
+        """Should return correct exit codes."""
+        from helixops.cli.formatters import ExitCodeManager
+
+        assert ExitCodeManager.get_code("validation") == 1
+        assert ExitCodeManager.get_code("runtime") == 1
+        assert ExitCodeManager.get_code("file_not_found") == 2
+        assert ExitCodeManager.get_code("invalid_argument") == 3
+        assert ExitCodeManager.get_code("not_found") == 4
+
+
 class TestCLIIntegration:
     """Integration tests for CLI workflows."""
 
