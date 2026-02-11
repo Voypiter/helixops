@@ -333,6 +333,66 @@ class TestAPIPagination:
         assert response.status_code in [200, 422]
 
 
+class TestRequestTracing:
+    """Tests for request tracing and correlation."""
+
+    def test_request_context_creation(self) -> None:
+        """Should create request context."""
+        from helixops.api.tracing import RequestContext
+
+        context = RequestContext("test-request-1")
+
+        assert context.request_id == "test-request-1"
+        assert context.get_duration_ms() >= 0
+
+    def test_request_context_tags(self) -> None:
+        """Should track tags in context."""
+        from helixops.api.tracing import RequestContext
+
+        context = RequestContext("test-request-1")
+        context.tag("endpoint", "/api/workflows")
+        context.tag("method", "POST")
+
+        assert context.tags["endpoint"] == "/api/workflows"
+        assert context.tags["method"] == "POST"
+
+    def test_request_context_measurements(self) -> None:
+        """Should record measurements."""
+        from helixops.api.tracing import RequestContext
+
+        context = RequestContext("test-request-1")
+        context.measure("db_time_ms", 42.5)
+        context.measure("task_count", 10.0)
+
+        assert context.measurements["db_time_ms"] == 42.5
+        assert context.measurements["task_count"] == 10.0
+
+    def test_request_tracer(self) -> None:
+        """Should manage request contexts."""
+        from helixops.api.tracing import RequestTracer
+
+        tracer = RequestTracer()
+        context1 = tracer.create_context("req-1")
+        context2 = tracer.create_context("req-2")
+
+        assert tracer.get_context("req-1") == context1
+        assert tracer.get_context("req-2") == context2
+
+    def test_request_diagnostics(self) -> None:
+        """Should track request diagnostics."""
+        from helixops.api.tracing import RequestDiagnostics
+
+        diag = RequestDiagnostics()
+        diag.record_request("/api/workflows", "POST")
+        diag.record_request("/api/workflows", "GET")
+        diag.record_error("/api/workflows", "validation_error")
+
+        summary = diag.get_summary()
+
+        assert summary["total_requests"] == 2
+        assert summary["total_errors"] == 1
+
+
 class TestSchemaValidation:
     """Tests for request/response schema validation."""
 
