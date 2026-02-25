@@ -209,3 +209,54 @@ class TestMetricsSnapshot:
 
         assert snapshot.skipped_count == 1
         assert snapshot.succeeded_count == 1
+
+
+class TestPerformanceDiagnostics:
+    """Tests for performance diagnostics."""
+
+    def test_identify_bottlenecks(self) -> None:
+        """Should identify slow tasks."""
+        from helixops.observability.diagnostics import PerformanceDiagnostics
+
+        tasks = [
+            TaskMetrics(task_id="t1", duration_ms=10.0, succeeded=True),
+            TaskMetrics(task_id="t2", duration_ms=50.0, succeeded=True),
+            TaskMetrics(task_id="t3", duration_ms=100.0, succeeded=True),
+            TaskMetrics(task_id="t4", duration_ms=200.0, succeeded=True),
+        ]
+
+        bottlenecks = PerformanceDiagnostics.identify_bottlenecks(tasks, percentile=0.75)
+
+        assert len(bottlenecks) > 0
+        assert bottlenecks[0].duration_ms == 200.0
+
+    def test_identify_retry_heavy_tasks(self) -> None:
+        """Should identify tasks with excessive retries."""
+        from helixops.observability.diagnostics import PerformanceDiagnostics
+
+        tasks = [
+            TaskMetrics(task_id="t1", duration_ms=100.0, succeeded=True, retry_count=0),
+            TaskMetrics(task_id="t2", duration_ms=100.0, succeeded=True, retry_count=5),
+            TaskMetrics(task_id="t3", duration_ms=100.0, succeeded=True, retry_count=3),
+        ]
+
+        retry_heavy = PerformanceDiagnostics.identify_retry_heavy_tasks(tasks, threshold=2)
+
+        assert len(retry_heavy) == 2
+        assert "t2" in retry_heavy
+        assert "t3" in retry_heavy
+
+    def test_generate_warnings(self) -> None:
+        """Should generate performance warnings."""
+        from helixops.observability.diagnostics import PerformanceDiagnostics
+
+        tasks = [
+            TaskMetrics(task_id="t1", duration_ms=100.0, succeeded=False),
+            TaskMetrics(task_id="t2", duration_ms=100.0, succeeded=False),
+            TaskMetrics(task_id="t3", duration_ms=100.0, succeeded=True),
+        ]
+
+        warnings = PerformanceDiagnostics.generate_warnings(tasks)
+
+        assert len(warnings) > 0
+        assert any("failure" in w.lower() for w in warnings)
