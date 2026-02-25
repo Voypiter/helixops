@@ -1,49 +1,185 @@
-# HelixOps: Self-Healing Distributed Workflow Simulation Platform
+# HelixOps: Distributed Workflow Orchestration Engine
 
-A production-grade Python platform that simulates, schedules, executes, observes, and repairs complex distributed workflows without relying on external data.
+A production-grade Python framework for reliable, observable workflow execution with deterministic testing, crash recovery, and comprehensive performance optimization.
 
-## Overview
+**Status:** Production-ready (Milestone 12)  
+**Test Coverage:** 241+ tests  
+**Python Version:** 3.11+  
+**License:** MIT
 
-HelixOps provides an internal reliability engineering platform that lets companies test how workflow systems behave under failures before deploying real automation pipelines. The system programmatically generates workloads, injects failures, persists execution state, retries failed jobs intelligently, exposes metrics, and validates correctness through deterministic tests.
+## Quick Start
+
+### Local Development
+
+```bash
+# Install in development mode
+pip install -e .
+
+# Run tests
+pytest tests/ -v
+
+# Start API server
+python -m uvicorn helixops.api.app:app --reload
+
+# Run CLI
+helixops generate --profile balanced --seed 42
+helixops validate workflow.json
+```
+
+### Docker Deployment
+
+```bash
+# Build image
+docker build -t helixops:latest .
+
+# Run API server
+docker run -p 8000:8000 \
+  -e HELIXOPS_ENV=production \
+  -e HELIXOPS_MAX_CONCURRENT=100 \
+  helixops:latest
+```
+
+## Configuration
+
+HelixOps uses environment variables for runtime configuration. See Configuration section below for full options.
+
+## CLI Usage
+
+### Generate Workflows
+
+```bash
+helixops generate --profile balanced --seed 42
+helixops generate --profile tiny --seed 100
+helixops validate workflow.json
+helixops benchmark --suite smoke
+```
+
+### Profiles
+
+- **tiny:** 5 tasks, minimal dependencies
+- **balanced:** 50 tasks, moderate parallelism
+- **wide:** 100+ parallel tasks
+- **deep:** Sequential chain of 100+ tasks
+- **failure_heavy:** 50% failure rate for testing
+- **enterprise:** Real-world microservices patterns
+- **stress:** Maximum scale workloads
+
+## API Usage
+
+### Health Check
+
+```bash
+curl http://localhost:8000/health
+```
+
+### Generate Workflow
+
+```bash
+curl -X POST http://localhost:8000/api/v1/workflows/generate \
+  -H "Content-Type: application/json" \
+  -d '{"profile": "balanced", "seed": 42}'
+```
+
+### Create and Execute Run
+
+```bash
+curl -X POST http://localhost:8000/api/v1/runs \
+  -H "Content-Type: application/json" \
+  -d '{"workflow_id": "wf-abc", "max_concurrent": 10}'
+```
+
+### Recover Interrupted Run
+
+```bash
+curl -X POST http://localhost:8000/api/v1/runs/run-xyz/recover
+```
+
+## Recovery and Crash Safety
+
+HelixOps implements conservative crash recovery:
+
+1. **At-least-once execution** after recovery
+2. **No duplicate execution** under any failure scenario
+3. **Eventual consistency** of event audit trail
+4. **Atomic state transitions** with database transactions
+
+On restart after crash:
+- Successfully completed tasks are preserved
+- Running tasks are marked failed (unsafe to resume)
+- Queued tasks are requeued for execution
+- Full audit trail is generated
+
+## Benchmarking
+
+```bash
+# Run benchmark suite
+helixops benchmark --suite smoke
+helixops benchmark --suite regression
+helixops benchmark --suite scalability
+
+# Performance expectations (typical hardware):
+# - Tiny (5 tasks): <200ms
+# - Balanced (50 tasks): <2000ms
+# - Wide (100 parallel): <5000ms
+# - Deep (100 sequential): <10000ms
+```
+
+## Operational Limitations
+
+### Resource Constraints
+
+- Max concurrent tasks: 500
+- Max workflow size: 10,000 tasks
+- Max task timeout: 3600 seconds
+- Max API request size: 10 MB
+- Event retention: 7 days
+
+### Scalability Notes
+
+- Wide workflows: Use batched event persistence
+- Deep workflows: Linear execution, no parallelism gains
+- High throughput: Enable connection pooling and batch writes
+
+### Known Limitations
+
+- Single-node only (no distributed execution)
+- SQLite default (use PostgreSQL for production)
+- No built-in scheduling
+- No secret management
 
 ## Architecture
 
-HelixOps is organized into 10 major layers:
+### Core Components
 
-1. **Core Domain Layer** — Workflow definitions, task definitions, dependency graphs, task states, execution events, retry policies, failure models, and validation rules.
-2. **DAG Planning Engine** — Graph validation, cycle detection, executable task waves, dependency resolution, and execution plan generation.
-3. **Execution Engine** — Asynchronous task execution, dependency ordering, timeouts, retries, failure isolation, state recording, and cancellation.
-4. **Persistence Layer** — Durable storage using SQLite with repository abstraction for future storage backends.
-5. **Failure Simulation Layer** — Deterministic synthetic failure injection with seed-driven randomness.
-6. **Recovery Layer** — Run restoration, inconsistency detection, task re-queueing, and audit trail generation.
-7. **Observability Layer** — Structured logs, metrics, traces, health checks, counters, histograms, and execution summaries.
-8. **API Layer** — FastAPI service for workflow/run management, status inspection, cancellation, metrics, and recovery.
-9. **CLI Layer** — Typer-based CLI for workload generation, execution, failure injection, and report viewing.
-10. **Test and Benchmark Layer** — Deterministic test suite generation, edge-case DAGs, stress workloads, and benchmark reports.
+1. **Domain Model** — Workflow, Task, Execution concepts
+2. **Planning** — DAG construction, cycle detection
+3. **Execution** — Async task runtime with bounded concurrency
+4. **Retry Policy** — Failure classification and backoff
+5. **Persistence** — SQLAlchemy ORM and event journaling
+6. **Recovery** — Crash recovery and reconciliation
+7. **Workload Generation** — Deterministic synthetic workflows
+8. **CLI** — Typer-based command-line interface
+9. **API** — FastAPI HTTP service
+10. **Observability** — Metrics, health checks, diagnostics
+11. **Benchmarking** — Performance measurement
+12. **Configuration** — Runtime settings and validation
+13. **Lifecycle** — Graceful shutdown and deployment
 
-## Project Status
+## Development
 
-- **v0.1.0 (Current)** — Domain model and validation contracts.
-
-## Installation
-
-```bash
-pip install -e .
-```
-
-## Development Setup
+### Running Tests
 
 ```bash
-pip install -e ".[dev]"
-pre-commit install
+pytest tests/ -v
+pytest tests/ --cov=src/helixops
 ```
 
-## Running Tests
+### Project Structure
 
-```bash
-pytest
-pytest --cov=src/helixops
-```
+- `src/helixops/` — Production code (74 modules)
+- `tests/` — Test suite (241+ tests)
+- `docs/adr/` — Architecture decision records
+- `Dockerfile` — Container image
 
 ## License
 
