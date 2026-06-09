@@ -1,4 +1,0 @@
-# Pinned versions for build tools
-# Used in Dockerfile to enable reproducible builds
-setuptools==70.0.0
-wheel==0.42.0

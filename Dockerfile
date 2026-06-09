@@ -13,10 +13,12 @@ COPY pyproject.toml setup.py README.md requirements-lock.txt ./
 COPY src/ ./src/
 COPY tests/ ./tests/
 
-# Install build tools with pinned versions
-RUN pip install --no-cache-dir setuptools==70.0.0 wheel==0.42.0
+# Install build tools with pinned versions: setuptools==70.0.0 wheel==0.42.0
+RUN pip install --no-cache-dir \
+    setuptools==70.0.0 \
+    wheel==0.42.0
 
-# Install editable package and dependencies
+# Install editable package and all dependencies from locked requirements
 RUN pip install --no-cache-dir -e . && \
     pip install --no-cache-dir -r requirements-lock.txt
 
