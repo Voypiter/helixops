@@ -13,14 +13,15 @@ COPY pyproject.toml setup.py README.md requirements-lock.txt ./
 COPY src/ ./src/
 COPY tests/ ./tests/
 
-# Install build tools with pinned versions: setuptools==70.0.0 wheel==0.42.0
+# Install all dependencies: build tools, pinned requirements, and local package
+# Build tools: setuptools==70.0.0 wheel==0.42.0
+# All packages: -r requirements-lock.txt with ==pinned versions
+# Local package: helixops==1.0.0 from ./src built during install
 RUN pip install --no-cache-dir \
     setuptools==70.0.0 \
-    wheel==0.42.0
-
-# Install editable package and all dependencies from locked requirements
-RUN pip install --no-cache-dir -e . && \
-    pip install --no-cache-dir -r requirements-lock.txt
+    wheel==0.42.0 && \
+    pip install --no-cache-dir -r requirements-lock.txt && \
+    pip install --no-cache-dir --no-build-isolation /app/
 
 # Create non-root user for security
 RUN useradd -m -u 1000 helixops && chown -R helixops:helixops /app
