@@ -13,8 +13,12 @@ COPY pyproject.toml setup.py README.md requirements-lock.txt ./
 COPY src/ ./src/
 COPY tests/ ./tests/
 
-# Install all dependencies (including helixops) with pinned versions for reproducible builds
-RUN pip install --no-cache-dir -r requirements-lock.txt
+# Install build tools with pinned versions
+RUN pip install --no-cache-dir setuptools==70.0.0 wheel==0.42.0
+
+# Install editable package and dependencies
+RUN pip install --no-cache-dir -e . && \
+    pip install --no-cache-dir -r requirements-lock.txt
 
 # Create non-root user for security
 RUN useradd -m -u 1000 helixops && chown -R helixops:helixops /app
