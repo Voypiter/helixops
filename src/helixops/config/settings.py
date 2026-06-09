@@ -2,7 +2,6 @@
 
 import os
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -67,7 +66,7 @@ class SecurityConfig:
     """Security settings."""
 
     enable_cors: bool = False
-    cors_origins: list = field(default_factory=list)
+    cors_origins: list[str] = field(default_factory=list)
     require_api_auth: bool = False
     auth_token_header: str = "X-API-Token"
     input_validation_strict: bool = True
@@ -102,15 +101,11 @@ class RuntimeConfig:
         config.debug = os.getenv("HELIXOPS_DEBUG", "false").lower() == "true"
 
         # Database
-        config.database.url = os.getenv(
-            "HELIXOPS_DATABASE_URL", config.database.url
-        )
+        config.database.url = os.getenv("HELIXOPS_DATABASE_URL", config.database.url)
         config.database.pool_size = int(
             os.getenv("HELIXOPS_DB_POOL_SIZE", config.database.pool_size)
         )
-        config.database.migration_check = (
-            os.getenv("HELIXOPS_DB_MIGRATE", "true").lower() == "true"
-        )
+        config.database.migration_check = os.getenv("HELIXOPS_DB_MIGRATE", "true").lower() == "true"
 
         # Execution
         config.execution.max_concurrent_default = int(
@@ -144,22 +139,16 @@ class RuntimeConfig:
     def validate(self) -> None:
         """Validate configuration consistency."""
         if self.execution.max_concurrent_default > self.execution.max_concurrent_limit:
-            raise ValueError(
-                "max_concurrent_default cannot exceed max_concurrent_limit"
-            )
+            raise ValueError("max_concurrent_default cannot exceed max_concurrent_limit")
 
         if self.api.port < 1024 and self.environment == "production":
-            raise ValueError(
-                "API port must be >= 1024 in production (use reverse proxy)"
-            )
+            raise ValueError("API port must be >= 1024 in production (use reverse proxy)")
 
         if self.security.max_workflow_size_mb > 1000:
             raise ValueError("max_workflow_size_mb is too large for safety")
 
         if self.api.pagination_default_limit > self.api.pagination_max_limit:
-            raise ValueError(
-                "pagination_default_limit cannot exceed pagination_max_limit"
-            )
+            raise ValueError("pagination_default_limit cannot exceed pagination_max_limit")
 
     def get_production_config(self) -> "RuntimeConfig":
         """Get hardened production configuration.
@@ -178,7 +167,7 @@ class RuntimeConfig:
 
 
 # Global configuration instance
-_config: Optional[RuntimeConfig] = None
+_config: RuntimeConfig | None = None
 
 
 def get_config() -> RuntimeConfig:

@@ -1,9 +1,8 @@
 """Tests for the asynchronous execution engine."""
 
-import asyncio
 import pytest
 
-from helixops.domain.models import Workflow, TaskNode, TaskState
+from helixops.domain.models import TaskNode, Workflow
 from helixops.execution.executor import ExecutionEngine
 from helixops.execution.models import (
     ExecutionEventType,
@@ -57,9 +56,7 @@ class TestExecutionEngine:
         workflow = Workflow(name="FanOut")
         workflow.add_task(TaskNode(task_id="root", name="Root"))
         for i in range(3):
-            workflow.add_task(
-                TaskNode(task_id=f"task{i}", name=f"Task{i}", depends_on=["root"])
-            )
+            workflow.add_task(TaskNode(task_id=f"task{i}", name=f"Task{i}", depends_on=["root"]))
 
         engine = ExecutionEngine(workflow, max_workers=4)
         configs = {
@@ -105,9 +102,7 @@ class TestExecutionEngine:
 
         engine = ExecutionEngine(workflow)
         configs = {
-            "task1": TaskSimulationConfig(
-                task_id="task1", duration_ms=100, should_skip=True
-            )
+            "task1": TaskSimulationConfig(task_id="task1", duration_ms=100, should_skip=True)
         }
 
         result = await engine.execute("run-1", configs)
@@ -142,9 +137,7 @@ class TestExecutionEngine:
         workflow = Workflow(name="ConcurrencyTest")
         workflow.add_task(TaskNode(task_id="root", name="Root"))
         for i in range(10):
-            workflow.add_task(
-                TaskNode(task_id=f"task{i}", name=f"Task{i}", depends_on=["root"])
-            )
+            workflow.add_task(TaskNode(task_id=f"task{i}", name=f"Task{i}", depends_on=["root"]))
 
         # Limit to 2 concurrent workers
         engine = ExecutionEngine(workflow, max_workers=2)
@@ -152,9 +145,7 @@ class TestExecutionEngine:
             "root": TaskSimulationConfig(task_id="root", duration_ms=10),
         }
         for i in range(10):
-            configs[f"task{i}"] = TaskSimulationConfig(
-                task_id=f"task{i}", duration_ms=50
-            )
+            configs[f"task{i}"] = TaskSimulationConfig(task_id=f"task{i}", duration_ms=50)
 
         result = await engine.execute("run-1", configs)
 
@@ -229,10 +220,7 @@ class TestExecutionEngine:
 
         # Both should have same outcome
         assert result1.succeeded == result2.succeeded
-        assert (
-            result1.task_results["task1"].succeeded
-            == result2.task_results["task1"].succeeded
-        )
+        assert result1.task_results["task1"].succeeded == result2.task_results["task1"].succeeded
 
     @pytest.mark.asyncio
     async def test_event_timestamps_ordered(self) -> None:
@@ -307,9 +295,7 @@ class TestExecutionEngine:
 
         # Wave 1: parallel
         for i in range(3):
-            workflow.add_task(
-                TaskNode(task_id=f"level1_{i}", name=f"L1_{i}", depends_on=["start"])
-            )
+            workflow.add_task(TaskNode(task_id=f"level1_{i}", name=f"L1_{i}", depends_on=["start"]))
 
         # Wave 2: converge
         workflow.add_task(
@@ -336,13 +322,9 @@ class TestExecutionEngine:
             "merge": TaskSimulationConfig(task_id="merge", duration_ms=10),
         }
         for i in range(3):
-            configs[f"level1_{i}"] = TaskSimulationConfig(
-                task_id=f"level1_{i}", duration_ms=30
-            )
+            configs[f"level1_{i}"] = TaskSimulationConfig(task_id=f"level1_{i}", duration_ms=30)
         for i in range(2):
-            configs[f"level2_{i}"] = TaskSimulationConfig(
-                task_id=f"level2_{i}", duration_ms=20
-            )
+            configs[f"level2_{i}"] = TaskSimulationConfig(task_id=f"level2_{i}", duration_ms=20)
 
         result = await engine.execute("run-1", configs)
 

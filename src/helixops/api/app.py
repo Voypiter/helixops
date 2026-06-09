@@ -1,18 +1,16 @@
 """FastAPI application for HelixOps workflow management."""
 
-import json
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query, Request, Depends
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from helixops.api.schemas import (
     ErrorDetail,
     EventListResponse,
-    EventResponse,
     HealthResponse,
     MetricsResponse,
     RecoveryResponse,
@@ -25,7 +23,6 @@ from helixops.api.schemas import (
     WorkflowGenerateRequest,
     WorkflowListResponse,
     WorkflowResponse,
-    PaginationParams,
 )
 from helixops.generation.generator import SyntheticWorkflowGenerator
 from helixops.generation.models import SyntheticWorkloadConfig
@@ -41,7 +38,7 @@ app = FastAPI(
 class CorrelationIDMiddleware(BaseHTTPMiddleware):
     """Middleware to add request correlation IDs."""
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next: Any) -> Any:
         """Add correlation ID to request."""
         correlation_id = request.headers.get("X-Correlation-ID", str(uuid.uuid4()))
         request.state.correlation_id = correlation_id
@@ -78,11 +75,11 @@ async def generate_workflow(
         # Parse profile string to enum
         try:
             profile = WLProfile(request.profile)
-        except ValueError:
+        except ValueError as e:
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid profile: {request.profile}",
-            )
+            ) from e
 
         config = SyntheticWorkloadConfig(
             profile=profile,
@@ -105,7 +102,7 @@ async def generate_workflow(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Generation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Generation error: {str(e)}") from e
 
 
 @app.post("/api/v1/workflows/{workflow_id}/validate", response_model=ValidationResponse)
@@ -123,7 +120,7 @@ async def validate_workflow(
             warnings=[],
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/api/v1/workflows", response_model=WorkflowListResponse)
@@ -140,7 +137,7 @@ async def list_workflows(
             workflows=[],
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/v1/runs", response_model=RunResponse)
@@ -157,13 +154,16 @@ async def create_run(
             workflow_id=request.workflow_id,
             state="PENDING",
             created_at=datetime.utcnow(),
+            started_at=None,
+            completed_at=None,
             task_count=0,
             succeeded_count=0,
             failed_count=0,
+            duration_ms=0,
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/api/v1/runs/{run_id}", response_model=RunResponse)
@@ -179,12 +179,15 @@ async def get_run(
             workflow_id="wf-unknown",
             state="UNKNOWN",
             created_at=datetime.utcnow(),
+            started_at=None,
+            completed_at=None,
             task_count=0,
             succeeded_count=0,
             failed_count=0,
+            duration_ms=0,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/api/v1/runs/{run_id}/tasks", response_model=TaskListResponse)
@@ -203,7 +206,7 @@ async def list_run_tasks(
             items=[],
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/api/v1/runs/{run_id}/tasks/{task_id}", response_model=TaskResponse)
@@ -219,9 +222,13 @@ async def get_run_task(
             task_name=f"Task {task_id}",
             state="UNKNOWN",
             attempt_number=1,
+            started_at=None,
+            completed_at=None,
+            duration_ms=0,
+            error=None,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/api/v1/runs/{run_id}/events", response_model=EventListResponse)
@@ -240,14 +247,14 @@ async def list_run_events(
             items=[],
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/v1/runs/{run_id}/cancel")
 async def cancel_run(
     run_id: str,
     correlation_id: str = Depends(get_correlation_id),
-):
+) -> dict[str, Any]:
     """Cancel a running workflow."""
     try:
         return {
@@ -255,7 +262,7 @@ async def cancel_run(
             "status": "cancelled",
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/v1/runs/{run_id}/recover", response_model=RecoveryResponse)
@@ -273,7 +280,7 @@ async def recover_run(
             failed_tasks=0,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/api/v1/metrics", response_model=MetricsResponse)
@@ -293,7 +300,7 @@ async def get_metrics(
             avg_run_duration_ms=0.0,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/api/v1/reports/{run_id}", response_model=ReportResponse)
@@ -313,11 +320,11 @@ async def get_report(
             report_text="No report available",
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """Handle HTTP exceptions with correlation ID."""
     correlation_id = getattr(request.state, "correlation_id", "unknown")
 

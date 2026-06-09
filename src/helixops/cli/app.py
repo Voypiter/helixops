@@ -1,17 +1,17 @@
 """HelixOps CLI application."""
 
 import json
-import sys
 from pathlib import Path
-from typing import Optional
 
 import typer
 
-from helixops.generation.generator import SyntheticWorkflowGenerator, EdgeCaseGenerator
+from helixops.cli.models import (
+    OutputFormat,
+)
+from helixops.generation.benchmarks import WorkloadLibrary
+from helixops.generation.generator import SyntheticWorkflowGenerator
 from helixops.generation.models import SyntheticWorkloadConfig, WorkloadProfile
-from helixops.generation.benchmarks import BenchmarkSuite, WorkloadLibrary
-from helixops.generation.profiles import EnterpriseProfiles, PathologicalProfiles, ProfileExamples
-from helixops.cli.models import OutputFormat, CLIResult, WorkflowInfo, RunInfo, TaskInfo, ValidationResult
+from helixops.generation.profiles import EnterpriseProfiles, PathologicalProfiles
 
 app = typer.Typer(help="HelixOps: Workflow orchestration and execution engine")
 
@@ -26,11 +26,11 @@ def generate(
         42,
         help="Random seed for deterministic generation",
     ),
-    task_count: Optional[int] = typer.Option(
+    task_count: int | None = typer.Option(
         None,
         help="Override task count",
     ),
-    output: Optional[Path] = typer.Option(
+    output: Path | None = typer.Option(
         None,
         help="Output file (defaults to stdout)",
     ),
@@ -65,7 +65,7 @@ def generate(
 
     except Exception as e:
         typer.echo(f"✗ Error generating workflow: {str(e)}", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
 
 @app.command()
@@ -88,8 +88,8 @@ def validate(
         workflow_data = json.loads(workflow.read_text())
 
         # Basic validation
-        errors = []
-        warnings = []
+        errors: list[str] = []
+        warnings: list[str] = []
 
         if "tasks" not in workflow_data:
             errors.append("Missing 'tasks' field")
@@ -124,12 +124,12 @@ def validate(
         if not is_valid:
             raise typer.Exit(code=1)
 
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
         typer.echo(f"✗ Invalid JSON in {workflow}", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
     except Exception as e:
         typer.echo(f"✗ Error validating workflow: {str(e)}", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
 
 @app.command()
@@ -138,7 +138,7 @@ def benchmark(
         "smoke",
         help="Benchmark suite name (smoke, regression, scalability, resilience, pathological)",
     ),
-    index: Optional[int] = typer.Option(
+    index: int | None = typer.Option(
         None,
         help="Specific test index in suite",
     ),
@@ -157,7 +157,7 @@ def benchmark(
                 if suite not in benchmarks:
                     raise ValueError(f"Unknown suite: {suite}")
                 workflows = benchmarks[suite]
-                workflow = workflows[0] if workflows else None
+                workflow = workflows[0] if workflows else None  # type: ignore[assignment]
 
                 if not workflow:
                     typer.echo(f"✗ No workflows in suite: {suite}", err=True)
@@ -186,7 +186,7 @@ def benchmark(
 
         except ValueError as e:
             typer.echo(f"✗ {str(e)}", err=True)
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1) from e
 
         if format == OutputFormat.JSON:
             workflow_data = workflow.to_dict()
@@ -199,7 +199,7 @@ def benchmark(
 
     except Exception as e:
         typer.echo(f"✗ Error running benchmark: {str(e)}", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
 
 @app.command()
@@ -232,10 +232,10 @@ def enterprise(
 
     except ValueError as e:
         typer.echo(f"✗ Unknown enterprise profile: {profile}", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
     except Exception as e:
         typer.echo(f"✗ Error generating enterprise workflow: {str(e)}", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
 
 @app.command()
@@ -277,7 +277,7 @@ def pathological(
 
     except Exception as e:
         typer.echo(f"✗ Error generating pathological case: {str(e)}", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
 
 @app.command()
@@ -294,8 +294,7 @@ def list_suites(
         if format == OutputFormat.JSON:
             suite_data = {
                 "suites": {
-                    name: {"count": len(workflows)}
-                    for name, workflows in benchmarks.items()
+                    name: {"count": len(workflows)} for name, workflows in benchmarks.items()
                 }
             }
             typer.echo(json.dumps(suite_data, indent=2))
@@ -306,7 +305,7 @@ def list_suites(
 
     except Exception as e:
         typer.echo(f"✗ Error listing suites: {str(e)}", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
 
 @app.command()
@@ -329,12 +328,12 @@ def list_profiles(
             for profile in WorkloadProfile:
                 typer.echo(f"  - {profile.value}")
             typer.echo("\nEnterprise Profiles:")
-            for name in EnterpriseProfiles.PROFILES.keys():
+            for name in EnterpriseProfiles.PROFILES:
                 typer.echo(f"  - {name}")
 
     except Exception as e:
         typer.echo(f"✗ Error listing profiles: {str(e)}", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
 
 @app.command()

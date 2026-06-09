@@ -1,8 +1,8 @@
 """CLI output models and formatting."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class OutputFormat(Enum):
@@ -21,12 +21,7 @@ class CLIResult:
     data: Any = None
     message: str = ""
     exit_code: int = 0
-    errors: List[str] = None
-
-    def __post_init__(self) -> None:
-        """Initialize errors list if None."""
-        if self.errors is None:
-            self.errors = []
+    errors: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -50,7 +45,7 @@ class RunInfo:
     task_count: int
     succeeded_count: int
     failed_count: int
-    duration_ms: Optional[int] = None
+    duration_ms: int | None = None
 
 
 @dataclass
@@ -61,8 +56,8 @@ class TaskInfo:
     task_name: str
     state: str
     attempt_number: int
-    duration_ms: Optional[int] = None
-    error: Optional[str] = None
+    duration_ms: int | None = None
+    error: str | None = None
 
 
 @dataclass
@@ -71,12 +66,5 @@ class ValidationResult:
 
     is_valid: bool
     task_count: int
-    errors: List[str] = None
-    warnings: List[str] = None
-
-    def __post_init__(self) -> None:
-        """Initialize lists if None."""
-        if self.errors is None:
-            self.errors = []
-        if self.warnings is None:
-            self.warnings = []
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)

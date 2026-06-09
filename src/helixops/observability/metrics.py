@@ -1,9 +1,9 @@
 """Runtime metrics collection and analysis."""
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional
-from datetime import datetime
 import statistics
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any
 
 
 @dataclass
@@ -15,7 +15,7 @@ class TaskMetrics:
     succeeded: bool
     retry_count: int = 0
     skipped: bool = False
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass
@@ -36,7 +36,7 @@ class MetricsSnapshot:
     p99_duration_ms: float = 0.0
     throughput_tasks_per_sec: float = 0.0
 
-    def update_from_tasks(self, tasks: List[TaskMetrics]) -> None:
+    def update_from_tasks(self, tasks: list[TaskMetrics]) -> None:
         """Update metrics from task list."""
         if not tasks:
             return
@@ -67,10 +67,10 @@ class MetricsSnapshot:
 class MetricsCollector:
     """Collects and aggregates system metrics."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize metrics collector."""
-        self.tasks: List[TaskMetrics] = []
-        self.snapshots: List[MetricsSnapshot] = []
+        self.tasks: list[TaskMetrics] = []
+        self.snapshots: list[MetricsSnapshot] = []
 
     def record_task(self, metrics: TaskMetrics) -> None:
         """Record task metrics."""
@@ -89,7 +89,7 @@ class MetricsCollector:
         snapshot.update_from_tasks(self.tasks)
         return snapshot
 
-    def get_summary(self) -> Dict:
+    def get_summary(self) -> dict[str, Any]:
         """Get metrics summary."""
         snapshot = self.get_current_snapshot()
 

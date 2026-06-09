@@ -1,18 +1,17 @@
 """Deterministic DAG planning engine for workflow execution."""
 
-from typing import Dict, List, Set, Optional
 from collections import defaultdict, deque
 
-from helixops.domain.models import Workflow
 from helixops.domain.errors import (
     CyclicDependencyError,
     ValidationError,
 )
+from helixops.domain.models import Workflow
 from helixops.planning.models import (
     ExecutionPlan,
     ExecutionWave,
-    TaskDependencyInfo,
     GraphAnalysis,
+    TaskDependencyInfo,
 )
 
 
@@ -23,7 +22,7 @@ class DAGPlanningEngine:
         self.workflow = workflow
         self.graph = workflow.graph
         self.tasks = workflow.graph.tasks
-        self._analysis: Optional[GraphAnalysis] = None
+        self._analysis: GraphAnalysis | None = None
 
     def analyze_graph(self) -> GraphAnalysis:
         """Perform comprehensive graph analysis."""
@@ -46,12 +45,12 @@ class DAGPlanningEngine:
         self._analysis = analysis
         return analysis
 
-    def _detect_cycles(self) -> List[List[str]]:
+    def _detect_cycles(self) -> list[list[str]]:
         """Detect all cycles in the dependency graph."""
-        cycles: List[List[str]] = []
-        visited: Set[str] = set()
-        rec_stack: Set[str] = set()
-        path: List[str] = []
+        cycles: list[list[str]] = []
+        visited: set[str] = set()
+        rec_stack: set[str] = set()
+        path: list[str] = []
 
         def dfs(task_id: str) -> None:
             visited.add(task_id)
@@ -77,12 +76,12 @@ class DAGPlanningEngine:
 
         return cycles
 
-    def _find_unreachable_tasks(self) -> Set[str]:
+    def _find_unreachable_tasks(self) -> set[str]:
         """Find tasks that cannot be reached from any root task."""
         if not self.tasks:
             return set()
 
-        reachable: Set[str] = set()
+        reachable: set[str] = set()
         for task_id in self.tasks:
             task = self.tasks[task_id]
             if not task.depends_on:
@@ -91,10 +90,10 @@ class DAGPlanningEngine:
 
         return set(self.tasks.keys()) - reachable
 
-    def _get_reachable_from(self, task_id: str) -> Set[str]:
+    def _get_reachable_from(self, task_id: str) -> set[str]:
         """Get all tasks reachable from a given task."""
-        reachable: Set[str] = set()
-        visited: Set[str] = set()
+        reachable: set[str] = set()
+        visited: set[str] = set()
         queue = deque([task_id])
 
         while queue:
@@ -110,9 +109,9 @@ class DAGPlanningEngine:
 
         return reachable
 
-    def _find_orphan_tasks(self) -> Set[str]:
+    def _find_orphan_tasks(self) -> set[str]:
         """Find tasks that have no path to a root task."""
-        orphans: Set[str] = set()
+        orphans: set[str] = set()
         for task_id in self.tasks:
             if not self._has_path_to_root(task_id):
                 orphans.add(task_id)
@@ -120,7 +119,7 @@ class DAGPlanningEngine:
 
     def _has_path_to_root(self, task_id: str) -> bool:
         """Check if task has a path to a root task."""
-        visited: Set[str] = set()
+        visited: set[str] = set()
         queue = deque([task_id])
 
         while queue:
@@ -142,10 +141,10 @@ class DAGPlanningEngine:
 
         return False
 
-    def _find_connected_components(self) -> List[Set[str]]:
+    def _find_connected_components(self) -> list[set[str]]:
         """Find all connected components in the graph."""
-        visited: Set[str] = set()
-        components: List[Set[str]] = []
+        visited: set[str] = set()
+        components: list[set[str]] = []
 
         for task_id in self.tasks:
             if task_id not in visited:
@@ -154,9 +153,9 @@ class DAGPlanningEngine:
 
         return components
 
-    def _dfs_component(self, task_id: str, visited: Set[str]) -> Set[str]:
+    def _dfs_component(self, task_id: str, visited: set[str]) -> set[str]:
         """Find all tasks in the same connected component."""
-        component: Set[str] = set()
+        component: set[str] = set()
         stack = [task_id]
 
         while stack:
@@ -180,8 +179,8 @@ class DAGPlanningEngine:
 
     def _calculate_graph_depth(self) -> int:
         """Calculate the maximum depth of the dependency graph."""
-        depths: Dict[str, int] = {}
-        visiting: Set[str] = set()
+        depths: dict[str, int] = {}
+        visiting: set[str] = set()
 
         def get_depth(task_id: str) -> int:
             if task_id in depths:
@@ -209,9 +208,9 @@ class DAGPlanningEngine:
 
     def _calculate_max_width(self) -> int:
         """Calculate the maximum width (concurrent tasks) at any depth."""
-        task_depths: Dict[int, int] = defaultdict(int)
-        depths_cache: Dict[str, int] = {}
-        visiting: Set[str] = set()
+        task_depths: dict[int, int] = defaultdict(int)
+        depths_cache: dict[str, int] = {}
+        visiting: set[str] = set()
 
         def get_depth(task_id: str) -> int:
             if task_id in depths_cache:
@@ -238,11 +237,11 @@ class DAGPlanningEngine:
 
         return max(task_depths.values()) if task_depths else 0
 
-    def _find_critical_path(self) -> List[str]:
+    def _find_critical_path(self) -> list[str]:
         """Find the critical path (longest path from root to leaf)."""
-        longest_paths: Dict[str, List[str]] = {}
+        longest_paths: dict[str, list[str]] = {}
 
-        def find_longest(task_id: str) -> List[str]:
+        def find_longest(task_id: str) -> list[str]:
             if task_id in longest_paths:
                 return longest_paths[task_id]
 
@@ -250,9 +249,7 @@ class DAGPlanningEngine:
             if not task:
                 return [task_id]
 
-            dependents = [
-                t_id for t_id, t in self.tasks.items() if task_id in t.depends_on
-            ]
+            dependents = [t_id for t_id, t in self.tasks.items() if task_id in t.depends_on]
 
             if not dependents:
                 longest_paths[task_id] = [task_id]
@@ -274,7 +271,7 @@ class DAGPlanningEngine:
         if not roots:
             return []
 
-        critical = []
+        critical: list[str] = []
         for root_id in roots:
             path = find_longest(root_id)
             if len(path) > len(critical):
@@ -288,19 +285,13 @@ class DAGPlanningEngine:
         analysis = self.analyze_graph()
 
         if not analysis.is_acyclic:
-            raise CyclicDependencyError(
-                f"Workflow contains cycles: {analysis.has_cycles}"
-            )
+            raise CyclicDependencyError(f"Workflow contains cycles: {analysis.has_cycles}")
 
         if analysis.orphan_tasks:
-            raise ValidationError(
-                f"Workflow has orphan tasks: {analysis.orphan_tasks}"
-            )
+            raise ValidationError(f"Workflow has orphan tasks: {analysis.orphan_tasks}")
 
         if analysis.unreachable_tasks:
-            raise ValidationError(
-                f"Workflow has unreachable tasks: {analysis.unreachable_tasks}"
-            )
+            raise ValidationError(f"Workflow has unreachable tasks: {analysis.unreachable_tasks}")
 
         waves = self._calculate_waves()
         ordering = self._topological_sort()
@@ -318,9 +309,9 @@ class DAGPlanningEngine:
 
         return plan
 
-    def _calculate_waves(self) -> List[ExecutionWave]:
+    def _calculate_waves(self) -> list[ExecutionWave]:
         """Calculate execution waves for concurrent execution."""
-        task_waves: Dict[str, int] = {}
+        task_waves: dict[str, int] = {}
 
         def get_wave(task_id: str) -> int:
             if task_id in task_waves:
@@ -338,7 +329,7 @@ class DAGPlanningEngine:
         for task_id in self.tasks:
             get_wave(task_id)
 
-        waves_dict: Dict[int, List[str]] = defaultdict(list)
+        waves_dict: dict[int, list[str]] = defaultdict(list)
         for task_id, wave_id in task_waves.items():
             waves_dict[wave_id].append(task_id)
 
@@ -358,10 +349,10 @@ class DAGPlanningEngine:
 
         return waves_list
 
-    def _topological_sort(self) -> List[str]:
+    def _topological_sort(self) -> list[str]:
         """Generate deterministic topological ordering of tasks."""
-        visited: Set[str] = set()
-        order: List[str] = []
+        visited: set[str] = set()
+        order: list[str] = []
 
         def visit(task_id: str) -> None:
             if task_id in visited:
@@ -380,9 +371,9 @@ class DAGPlanningEngine:
 
         return order
 
-    def _build_dependency_info(self) -> Dict[str, TaskDependencyInfo]:
+    def _build_dependency_info(self) -> dict[str, TaskDependencyInfo]:
         """Build detailed dependency information for each task."""
-        info: Dict[str, TaskDependencyInfo] = {}
+        info: dict[str, TaskDependencyInfo] = {}
 
         for task_id, task in self.tasks.items():
             direct_deps = set(task.depends_on)
@@ -400,10 +391,10 @@ class DAGPlanningEngine:
 
         return info
 
-    def _get_transitive_deps(self, task_id: str) -> Set[str]:
+    def _get_transitive_deps(self, task_id: str) -> set[str]:
         """Get all transitive dependencies of a task."""
-        visited: Set[str] = set()
-        transitive: Set[str] = set()
+        visited: set[str] = set()
+        transitive: set[str] = set()
         queue = deque([task_id])
 
         while queue:
@@ -420,9 +411,9 @@ class DAGPlanningEngine:
 
         return transitive
 
-    def _get_dependents(self, task_id: str) -> Set[str]:
+    def _get_dependents(self, task_id: str) -> set[str]:
         """Get all tasks that depend on this task."""
-        dependents: Set[str] = set()
+        dependents: set[str] = set()
         for other_id, other_task in self.tasks.items():
             if task_id in other_task.depends_on:
                 dependents.add(other_id)
@@ -435,7 +426,7 @@ class DAGPlanningEngine:
             return 0
         return 1 + max(self._get_task_depth(dep_id) for dep_id in task.depends_on)
 
-    def _calculate_parallelism(self, waves: List[ExecutionWave]) -> float:
+    def _calculate_parallelism(self, waves: list[ExecutionWave]) -> float:
         """Calculate average parallelism factor."""
         if not waves:
             return 0.0

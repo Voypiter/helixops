@@ -1,10 +1,8 @@
 """Tests for observability, metrics, and reports."""
 
-import pytest
-
-from helixops.observability.metrics import MetricsCollector, TaskMetrics, MetricsSnapshot
 from helixops.observability.health import HealthStatus, get_health_status
-from helixops.observability.reports import WorkflowReport, TaskSummary, RetrySummary, PerformanceSummary
+from helixops.observability.metrics import MetricsCollector, MetricsSnapshot, TaskMetrics
+from helixops.observability.reports import RetrySummary, TaskSummary, WorkflowReport
 
 
 class TestMetricsCollector:
@@ -42,7 +40,9 @@ class TestMetricsCollector:
         """Should calculate percentiles correctly."""
         collector = MetricsCollector()
         for i in range(100):
-            collector.record_task(TaskMetrics(task_id=f"t{i}", duration_ms=float(i), succeeded=True))
+            collector.record_task(
+                TaskMetrics(task_id=f"t{i}", duration_ms=float(i), succeeded=True)
+            )
 
         snapshot = collector.get_current_snapshot()
 
@@ -63,7 +63,9 @@ class TestMetricsCollector:
         """Should generate summary."""
         collector = MetricsCollector()
         collector.record_task(TaskMetrics(task_id="t1", duration_ms=50.0, succeeded=True))
-        collector.record_task(TaskMetrics(task_id="t2", duration_ms=100.0, succeeded=False, retry_count=2))
+        collector.record_task(
+            TaskMetrics(task_id="t2", duration_ms=100.0, succeeded=False, retry_count=2)
+        )
 
         summary = collector.get_summary()
 
@@ -192,8 +194,12 @@ class TestMetricsSnapshot:
     def test_retry_counting(self) -> None:
         """Should count retries correctly."""
         collector = MetricsCollector()
-        collector.record_task(TaskMetrics(task_id="t1", duration_ms=100.0, succeeded=True, retry_count=3))
-        collector.record_task(TaskMetrics(task_id="t2", duration_ms=100.0, succeeded=True, retry_count=0))
+        collector.record_task(
+            TaskMetrics(task_id="t1", duration_ms=100.0, succeeded=True, retry_count=3)
+        )
+        collector.record_task(
+            TaskMetrics(task_id="t2", duration_ms=100.0, succeeded=True, retry_count=0)
+        )
 
         snapshot = collector.get_current_snapshot()
 
@@ -202,7 +208,9 @@ class TestMetricsSnapshot:
     def test_skipped_tasks(self) -> None:
         """Should count skipped tasks."""
         collector = MetricsCollector()
-        collector.record_task(TaskMetrics(task_id="t1", duration_ms=0.0, succeeded=False, skipped=True))
+        collector.record_task(
+            TaskMetrics(task_id="t1", duration_ms=0.0, succeeded=False, skipped=True)
+        )
         collector.record_task(TaskMetrics(task_id="t2", duration_ms=100.0, succeeded=True))
 
         snapshot = collector.get_current_snapshot()

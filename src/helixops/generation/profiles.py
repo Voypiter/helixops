@@ -1,7 +1,6 @@
 """Specialized workload profiles for enterprise and pathological scenarios."""
 
 from dataclasses import dataclass
-from typing import Dict, List
 
 from helixops.generation.generator import SyntheticWorkflowGenerator
 from helixops.generation.models import GeneratedWorkflow, SyntheticWorkloadConfig, WorkloadProfile
@@ -17,7 +16,7 @@ class EnterpriseProfile:
     failure_rate: float
     avg_task_duration_ms: int
     dependency_density: float
-    payload_size_range: tuple
+    payload_size_range: tuple[int, int]
 
 
 class EnterpriseProfiles:
@@ -221,7 +220,7 @@ class ProfileExamples:
     """Example workflows demonstrating different profiles."""
 
     @staticmethod
-    def get_examples() -> Dict[str, GeneratedWorkflow]:
+    def get_examples() -> dict[str, GeneratedWorkflow]:
         """Get a collection of example workflows.
 
         Returns:
@@ -239,7 +238,7 @@ class ProfileExamples:
             examples[f"standard_{profile.value}"] = gen.generate()
 
         # Enterprise profiles
-        for name in EnterpriseProfiles.PROFILES.keys():
+        for name in EnterpriseProfiles.PROFILES:
             examples[f"enterprise_{name}"] = EnterpriseProfiles.generate(name, seed=8000)
 
         # Pathological profiles

@@ -1,18 +1,18 @@
 """Tests for benchmarking infrastructure."""
 
-import pytest
 import json
+
 from helixops.benchmarks.harness import (
-    BenchmarkRunner,
     BenchmarkResult,
-    PerformanceThreshold,
+    BenchmarkRunner,
     PerformanceMetrics,
+    PerformanceThreshold,
 )
 from helixops.benchmarks.optimizations import (
-    SchedulerOptimizer,
-    PersistenceOptimizer,
     HotPathOptimizer,
     PerformanceTuning,
+    PersistenceOptimizer,
+    SchedulerOptimizer,
 )
 
 
@@ -283,9 +283,7 @@ class TestPersistenceOptimizer:
 
     def test_estimate_io_savings(self) -> None:
         """Should estimate I/O improvement from batching."""
-        savings = PersistenceOptimizer.estimate_io_savings(
-            event_count=1000, batch_size=10
-        )
+        savings = PersistenceOptimizer.estimate_io_savings(event_count=1000, batch_size=10)
 
         assert savings["unbatched_roundtrips"] == 1000
         assert savings["batched_roundtrips"] == 100
@@ -299,9 +297,7 @@ class TestHotPathOptimizer:
 
     def test_optimize_state_transitions(self) -> None:
         """Should measure state transition overhead."""
-        duration_ms = HotPathOptimizer.optimize_state_transitions(
-            "t1", "PENDING", "READY"
-        )
+        duration_ms = HotPathOptimizer.optimize_state_transitions("t1", "PENDING", "READY")
 
         assert isinstance(duration_ms, float)
         assert duration_ms >= 0

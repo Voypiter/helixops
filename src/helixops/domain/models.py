@@ -1,9 +1,9 @@
 """Core domain models for HelixOps."""
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 from uuid import uuid4
 
 
@@ -45,9 +45,7 @@ class RetryPolicy:
         if self.max_attempts < 1:
             from helixops.domain.errors import InvalidRetryPolicyError
 
-            raise InvalidRetryPolicyError(
-                f"max_attempts must be >= 1, got {self.max_attempts}"
-            )
+            raise InvalidRetryPolicyError(f"max_attempts must be >= 1, got {self.max_attempts}")
         if self.initial_backoff_ms < 0:
             from helixops.domain.errors import InvalidRetryPolicyError
 
@@ -83,15 +81,13 @@ class FailureProfile:
     failure_mode: FailureMode
     probability: float = 0.1
     delay_ms: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not (0 <= self.probability <= 1):
             from helixops.domain.errors import ValidationError
 
-            raise ValidationError(
-                f"probability must be in [0, 1], got {self.probability}"
-            )
+            raise ValidationError(f"probability must be in [0, 1], got {self.probability}")
         if self.delay_ms < 0:
             from helixops.domain.errors import ValidationError
 
@@ -104,10 +100,10 @@ class TaskNode:
 
     task_id: str
     name: str
-    timeout_seconds: Optional[int] = None
+    timeout_seconds: int | None = None
     retry_policy: RetryPolicy = field(default_factory=RetryPolicy)
-    depends_on: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    depends_on: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.task_id or not self.task_id.strip():
@@ -121,16 +117,14 @@ class TaskNode:
         if self.timeout_seconds is not None and self.timeout_seconds <= 0:
             from helixops.domain.errors import InvalidTimeoutError
 
-            raise InvalidTimeoutError(
-                f"timeout_seconds must be > 0, got {self.timeout_seconds}"
-            )
+            raise InvalidTimeoutError(f"timeout_seconds must be > 0, got {self.timeout_seconds}")
 
 
 @dataclass
 class DependencyGraph:
     """Represents the dependency relationships between tasks."""
 
-    tasks: Dict[str, TaskNode] = field(default_factory=dict)
+    tasks: dict[str, TaskNode] = field(default_factory=dict)
 
     def add_task(self, task: TaskNode) -> None:
         """Add a task to the graph."""
@@ -160,8 +154,8 @@ class DependencyGraph:
 
     def _validate_no_cycles(self) -> None:
         """Detect cycles in the dependency graph."""
-        visited: Set[str] = set()
-        rec_stack: Set[str] = set()
+        visited: set[str] = set()
+        rec_stack: set[str] = set()
 
         def has_cycle(task_id: str) -> bool:
             visited.add(task_id)
@@ -178,13 +172,10 @@ class DependencyGraph:
             return False
 
         for task_id in self.tasks:
-            if task_id not in visited:
-                if has_cycle(task_id):
-                    from helixops.domain.errors import CyclicDependencyError
+            if task_id not in visited and has_cycle(task_id):
+                from helixops.domain.errors import CyclicDependencyError
 
-                    raise CyclicDependencyError(
-                        "Workflow contains cyclic dependencies"
-                    )
+                raise CyclicDependencyError("Workflow contains cyclic dependencies")
 
 
 @dataclass
@@ -194,12 +185,12 @@ class TaskAttempt:
     attempt_id: str = field(default_factory=lambda: str(uuid4()))
     task_id: str = ""
     state: TaskState = TaskState.PENDING
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    error_message: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    error_message: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def get_duration_ms(self) -> Optional[float]:
+    def get_duration_ms(self) -> float | None:
         """Get the duration of this attempt in milliseconds."""
         if self.started_at is None or self.completed_at is None:
             return None
@@ -248,10 +239,10 @@ class ExecutionRun:
     workflow_id: str = ""
     state: TaskState = TaskState.PENDING
     created_at: datetime = field(default_factory=datetime.utcnow)
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    task_attempts: Dict[str, List[TaskAttempt]] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    task_attempts: dict[str, list[TaskAttempt]] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def add_task_attempt(self, attempt: TaskAttempt) -> None:
         """Record a new task attempt."""
@@ -259,16 +250,16 @@ class ExecutionRun:
             self.task_attempts[attempt.task_id] = []
         self.task_attempts[attempt.task_id].append(attempt)
 
-    def get_task_attempts(self, task_id: str) -> List[TaskAttempt]:
+    def get_task_attempts(self, task_id: str) -> list[TaskAttempt]:
         """Get all attempts for a task."""
         return self.task_attempts.get(task_id, [])
 
-    def get_latest_attempt(self, task_id: str) -> Optional[TaskAttempt]:
+    def get_latest_attempt(self, task_id: str) -> TaskAttempt | None:
         """Get the most recent attempt for a task."""
         attempts = self.get_task_attempts(task_id)
         return attempts[-1] if attempts else None
 
-    def get_duration_ms(self) -> Optional[float]:
+    def get_duration_ms(self) -> float | None:
         """Get the total duration of this run in milliseconds."""
         if self.started_at is None or self.completed_at is None:
             return None
@@ -283,9 +274,9 @@ class EventLog:
     timestamp: datetime = field(default_factory=datetime.utcnow)
     event_type: str = ""
     run_id: str = ""
-    task_id: Optional[str] = None
+    task_id: str | None = None
     message: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -295,11 +286,11 @@ class RecoveryPlan:
     recovery_id: str = field(default_factory=lambda: str(uuid4()))
     run_id: str = ""
     created_at: datetime = field(default_factory=datetime.utcnow)
-    failed_tasks: List[str] = field(default_factory=list)
-    recoverable_tasks: List[str] = field(default_factory=list)
-    completed_tasks: List[str] = field(default_factory=list)
-    audit_trail: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    failed_tasks: list[str] = field(default_factory=list)
+    recoverable_tasks: list[str] = field(default_factory=list)
+    completed_tasks: list[str] = field(default_factory=list)
+    audit_trail: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def add_audit_entry(self, entry: str) -> None:
         """Add an entry to the audit trail."""
@@ -314,9 +305,9 @@ class Workflow:
     name: str = ""
     description: str = ""
     graph: DependencyGraph = field(default_factory=DependencyGraph)
-    failure_profiles: List[FailureProfile] = field(default_factory=list)
+    failure_profiles: list[FailureProfile] = field(default_factory=list)
     created_at: datetime = field(default_factory=datetime.utcnow)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.name or not self.name.strip():
@@ -343,11 +334,11 @@ class Workflow:
                     f"Failure profile references non-existent task '{profile.task_id}'"
                 )
 
-    def get_task(self, task_id: str) -> Optional[TaskNode]:
+    def get_task(self, task_id: str) -> TaskNode | None:
         """Retrieve a task by ID."""
         return self.graph.tasks.get(task_id)
 
-    def get_all_tasks(self) -> List[TaskNode]:
+    def get_all_tasks(self) -> list[TaskNode]:
         """Get all tasks in the workflow."""
         return list(self.graph.tasks.values())
 

@@ -120,6 +120,17 @@ ignore = [
     "W505",   # doc line too long
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"src/helixops/api/*.py" = ["ARG001", "ARG002"]  # FastAPI requires unused dependency parameters
+"src/helixops/benchmarks/*.py" = ["ARG001", "ARG004"]  # Benchmark utilities have unused parameters
+"src/helixops/storage/database.py" = ["ARG001"]  # SQLAlchemy callbacks
+"src/helixops/cli/app.py" = ["B008"]  # typer.Option is valid pattern in Typer CLI
+"src/helixops/recovery/manager.py" = ["ARG002"]  # Recovery manager method signatures
+"src/helixops/retry/failures.py" = ["ARG004"]  # Failure classification utility
+"src/helixops/service/lifecycle.py" = ["ARG001"]  # Signal handlers require signature
+"tests/*.py" = ["ARG001", "ARG002", "ARG005"]  # Test fixtures and mocks often have unused parameters
+"tests/test_persistence.py" = ["ARG002"]  # Test fixtures
+
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true

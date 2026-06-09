@@ -1,10 +1,11 @@
 """Database connection and session management."""
 
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator, Optional
+from typing import Any
 
-from sqlalchemy import create_engine, Engine, event
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy import Engine, create_engine, event
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from helixops.storage.models import Base
@@ -36,8 +37,9 @@ class DatabaseConnection:
 
         # Enable foreign keys for SQLite
         if "sqlite" in db_url:
+
             @event.listens_for(Engine, "connect")
-            def set_sqlite_pragma(dbapi_conn, connection_record):
+            def set_sqlite_pragma(dbapi_conn: Any, connection_record: Any) -> None:
                 cursor = dbapi_conn.cursor()
                 cursor.execute("PRAGMA foreign_keys=ON")
                 cursor.close()

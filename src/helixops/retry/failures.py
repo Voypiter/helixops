@@ -2,11 +2,11 @@
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 
 class FailureClass(Enum):
     """Classification of failure types."""
+
     TRANSIENT = "transient"  # Recoverable with retry
     PERMANENT = "permanent"  # Not recoverable
     DEPENDENCY = "dependency"  # Dependency failure blocked this task
@@ -18,10 +18,11 @@ class FailureClass(Enum):
 @dataclass
 class FailureClassification:
     """Classification of a task failure."""
+
     failure_class: FailureClass
     retryable: bool
     error_message: str
-    root_cause: Optional[str] = None
+    root_cause: str | None = None
     suggests_poison: bool = False
 
     @staticmethod

@@ -1,7 +1,7 @@
 """Workflow execution reports and performance analysis."""
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -51,16 +51,16 @@ class WorkflowReport:
     workflow_id: str = ""
     status: str = "UNKNOWN"
     created_at: str = ""
-    completed_at: Optional[str] = None
+    completed_at: str | None = None
     duration_ms: float = 0.0
     task_summary: TaskSummary = field(default_factory=TaskSummary)
     retry_summary: RetrySummary = field(default_factory=RetrySummary)
     performance_summary: PerformanceSummary = field(default_factory=PerformanceSummary)
-    bottlenecks: List[Bottleneck] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
-    recovery_summary: Dict = field(default_factory=dict)
+    bottlenecks: list[Bottleneck] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    recovery_summary: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "run_id": self.run_id,
@@ -84,19 +84,19 @@ class WorkflowReport:
     def to_text(self) -> str:
         """Generate human-readable report."""
         lines = [
-            f"HelixOps Workflow Report",
-            f"========================",
+            "HelixOps Workflow Report",
+            "========================",
             f"Run ID: {self.run_id}",
             f"Status: {self.status}",
             f"Duration: {self.duration_ms}ms",
-            f"",
-            f"Task Summary:",
+            "",
+            "Task Summary:",
             f"  Total: {self.task_summary.total}",
             f"  Succeeded: {self.task_summary.succeeded}",
             f"  Failed: {self.task_summary.failed}",
             f"  Skipped: {self.task_summary.skipped}",
-            f"",
-            f"Retries:",
+            "",
+            "Retries:",
             f"  Total: {self.retry_summary.total_retries}",
             f"  Tasks with retries: {self.retry_summary.tasks_with_retries}",
         ]
@@ -111,6 +111,8 @@ class WorkflowReport:
             lines.append("")
             lines.append("Bottlenecks:")
             for bottleneck in self.bottlenecks[:5]:
-                lines.append(f"  • {bottleneck.task_id}: {bottleneck.duration_ms}ms ({bottleneck.reason})")
+                lines.append(
+                    f"  • {bottleneck.task_id}: {bottleneck.duration_ms}ms ({bottleneck.reason})"
+                )
 
         return "\n".join(lines)

@@ -1,9 +1,9 @@
 """Recovery and reconciliation data models."""
 
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import List, Dict, Set, Optional
 from datetime import datetime
+from enum import Enum
+from typing import Any
 
 
 class RecoveryState(Enum):
@@ -45,15 +45,15 @@ class RunRecoveryState:
     run_id: str
     workflow_id: str
     is_complete: bool
-    incomplete_tasks: List[str] = field(default_factory=list)
-    in_progress_tasks: List[str] = field(default_factory=list)
-    completed_tasks: List[str] = field(default_factory=list)
-    failed_tasks: List[str] = field(default_factory=list)
-    unknown_tasks: List[str] = field(default_factory=list)
+    incomplete_tasks: list[str] = field(default_factory=list)
+    in_progress_tasks: list[str] = field(default_factory=list)
+    completed_tasks: list[str] = field(default_factory=list)
+    failed_tasks: list[str] = field(default_factory=list)
+    unknown_tasks: list[str] = field(default_factory=list)
     total_event_count: int = 0
     has_run_start: bool = False
     has_run_end: bool = False
-    last_event_timestamp: Optional[datetime] = None
+    last_event_timestamp: datetime | None = None
 
 
 @dataclass
@@ -62,13 +62,13 @@ class RecoveryResult:
 
     run_id: str
     recovered: bool
-    decisions: List[TaskRecoveryDecision] = field(default_factory=list)
+    decisions: list[TaskRecoveryDecision] = field(default_factory=list)
     preserved_tasks: int = 0
     requeued_tasks: int = 0
     failed_tasks: int = 0
     skipped_tasks: int = 0
     total_decisions: int = 0
-    recovery_errors: List[str] = field(default_factory=list)
+    recovery_errors: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -77,9 +77,9 @@ class RecoveryAuditEvent:
 
     event_id: str
     run_id: str
-    task_id: Optional[str]
+    task_id: str | None
     action: RecoveryAction
     reason: str
     timestamp: datetime = field(default_factory=datetime.utcnow)
     decision_state: RecoveryState = RecoveryState.UNKNOWN
-    metadata: Dict = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)

@@ -6,10 +6,15 @@ from datetime import datetime
 
 import pytest
 
+from helixops.execution.models import (
+    ExecutionEvent,
+    ExecutionEventType,
+    RunExecutionResult,
+    TaskExecutionResult,
+)
 from helixops.storage.database import DatabaseConnection
-from helixops.storage.models import ExecutionRunModel, TaskAttemptModel, ExecutionEventModel
+from helixops.storage.models import ExecutionEventModel, ExecutionRunModel, TaskAttemptModel
 from helixops.storage.repository import PersistenceService
-from helixops.execution.models import RunExecutionResult, TaskExecutionResult, ExecutionEvent, ExecutionEventType
 
 
 @pytest.fixture
@@ -22,6 +27,7 @@ def temp_db():
         # Create a test workflow
         with conn.get_session() as session:
             from helixops.storage.repository import WorkflowRepository
+
             repo = WorkflowRepository(session)
             repo.save(workflow_id="wf-1", name="Test Workflow", definition={})
         yield conn
@@ -227,8 +233,8 @@ class TestExecutionEventRepository:
         """Events for a run should be retrievable in order."""
         with temp_db.get_session() as session:
             from helixops.storage.repository import (
-                ExecutionRunRepository,
                 ExecutionEventRepository,
+                ExecutionRunRepository,
             )
 
             run_repo = ExecutionRunRepository(session)
@@ -294,9 +300,9 @@ class TestPersistenceService:
         # Verify persistence
         with temp_db.get_session() as session:
             from helixops.storage.repository import (
+                ExecutionEventRepository,
                 ExecutionRunRepository,
                 TaskAttemptRepository,
-                ExecutionEventRepository,
             )
 
             run_repo = ExecutionRunRepository(session)
@@ -323,11 +329,12 @@ class TestEventJournal:
         from helixops.storage.event_journal import EventJournal
 
         with temp_db.get_session() as session:
-            from helixops.storage.repository import (
-                ExecutionRunRepository,
-                ExecutionEventRepository,
-            )
             from datetime import datetime, timedelta
+
+            from helixops.storage.repository import (
+                ExecutionEventRepository,
+                ExecutionRunRepository,
+            )
 
             run_repo = ExecutionRunRepository(session)
             run_repo.save(run_id="run-1", workflow_id="wf-1", state="RUNNING")
@@ -358,8 +365,8 @@ class TestEventJournal:
 
         with temp_db.get_session() as session:
             from helixops.storage.repository import (
-                ExecutionRunRepository,
                 ExecutionEventRepository,
+                ExecutionRunRepository,
             )
 
             run_repo = ExecutionRunRepository(session)
@@ -395,8 +402,8 @@ class TestEventJournal:
 
         with temp_db.get_session() as session:
             from helixops.storage.repository import (
-                ExecutionRunRepository,
                 ExecutionEventRepository,
+                ExecutionRunRepository,
             )
 
             run_repo = ExecutionRunRepository(session)
@@ -433,7 +440,7 @@ class TestPersistenceSurvivesRestart:
             # First connection: write data
             conn1 = DatabaseConnection(db_url=db_url)
             with conn1.get_session() as session:
-                from helixops.storage.repository import WorkflowRepository, ExecutionRunRepository
+                from helixops.storage.repository import ExecutionRunRepository, WorkflowRepository
 
                 wf_repo = WorkflowRepository(session)
                 wf_repo.save(workflow_id="wf-restart", name="Test", definition={})
@@ -462,8 +469,8 @@ class TestPersistenceSurvivesRestart:
             from helixops.storage.repository import ExecutionRunRepository
 
             repo = ExecutionRunRepository(session)
-            run1 = repo.save(run_id="run-1", workflow_id="wf-1", state="RUNNING")
-            run2 = repo.save(run_id="run-2", workflow_id="wf-1", state="RUNNING")
+            repo.save(run_id="run-1", workflow_id="wf-1", state="RUNNING")
+            repo.save(run_id="run-2", workflow_id="wf-1", state="RUNNING")
 
         # Both should be persisted together
         with temp_db.get_session() as session:

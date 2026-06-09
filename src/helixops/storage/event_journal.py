@@ -1,7 +1,8 @@
 """Event journal for audit trails and recovery."""
 
-from typing import List, Optional
 from datetime import datetime
+from typing import Any
+
 from sqlalchemy.orm import Session
 
 from helixops.storage.models import ExecutionEventModel
@@ -20,7 +21,7 @@ class EventJournal:
         self.session = session
         self.event_repo = ExecutionEventRepository(session)
 
-    def get_run_timeline(self, run_id: str) -> List[ExecutionEventModel]:
+    def get_run_timeline(self, run_id: str) -> list[ExecutionEventModel]:
         """Get complete event timeline for a run in chronological order.
 
         Args:
@@ -31,7 +32,7 @@ class EventJournal:
         """
         return self.event_repo.get_by_run(run_id)
 
-    def get_task_timeline(self, attempt_id: str) -> List[ExecutionEventModel]:
+    def get_task_timeline(self, attempt_id: str) -> list[ExecutionEventModel]:
         """Get event timeline for a specific task attempt.
 
         Args:
@@ -42,9 +43,7 @@ class EventJournal:
         """
         return self.event_repo.get_by_task(attempt_id)
 
-    def get_events_since(
-        self, run_id: str, timestamp: datetime
-    ) -> List[ExecutionEventModel]:
+    def get_events_since(self, run_id: str, timestamp: datetime) -> list[ExecutionEventModel]:
         """Get events after a specific timestamp.
 
         Args:
@@ -57,9 +56,7 @@ class EventJournal:
         all_events = self.event_repo.get_by_run(run_id)
         return [e for e in all_events if e.timestamp > timestamp]
 
-    def get_events_by_type(
-        self, run_id: str, event_type: str
-    ) -> List[ExecutionEventModel]:
+    def get_events_by_type(self, run_id: str, event_type: str) -> list[ExecutionEventModel]:
         """Get all events of a specific type in a run.
 
         Args:
@@ -72,7 +69,7 @@ class EventJournal:
         all_events = self.event_repo.get_by_run(run_id)
         return [e for e in all_events if e.event_type == event_type]
 
-    def get_failure_events(self, run_id: str) -> List[ExecutionEventModel]:
+    def get_failure_events(self, run_id: str) -> list[ExecutionEventModel]:
         """Get all failure-related events in a run.
 
         Args:
@@ -85,7 +82,7 @@ class EventJournal:
         failure_types = {"TASK_FAILED", "RUN_FAILED", "TASK_TIMED_OUT"}
         return [e for e in all_events if e.event_type in failure_types]
 
-    def verify_event_completeness(self, run_id: str) -> dict:
+    def verify_event_completeness(self, run_id: str) -> dict[str, Any]:
         """Verify event journal completeness and consistency.
 
         Args:
@@ -98,7 +95,11 @@ class EventJournal:
 
         event_types = {e.event_type for e in events}
         has_start = "RUN_STARTED" in event_types or "RUN_RUNNING" in event_types
-        has_end = "RUN_SUCCEEDED" in event_types or "RUN_FAILED" in event_types or "RUN_CANCELLED" in event_types
+        has_end = (
+            "RUN_SUCCEEDED" in event_types
+            or "RUN_FAILED" in event_types
+            or "RUN_CANCELLED" in event_types
+        )
 
         return {
             "total_events": len(events),

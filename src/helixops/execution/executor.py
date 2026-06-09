@@ -3,18 +3,17 @@
 import asyncio
 import random
 from datetime import datetime
-from typing import Dict, List, Optional, Set
 
-from helixops.domain.models import Workflow, TaskState
-from helixops.planning.dag_engine import DAGPlanningEngine
-from helixops.planning.models import ExecutionPlan
+from helixops.domain.models import TaskState, Workflow
 from helixops.execution.models import (
     ExecutionEvent,
     ExecutionEventType,
-    TaskSimulationConfig,
-    TaskExecutionResult,
     RunExecutionResult,
+    TaskExecutionResult,
+    TaskSimulationConfig,
 )
+from helixops.planning.dag_engine import DAGPlanningEngine
+from helixops.planning.models import ExecutionPlan
 
 
 class ExecutionEngine:
@@ -24,7 +23,7 @@ class ExecutionEngine:
         self,
         workflow: Workflow,
         max_workers: int = 4,
-        seed: Optional[int] = None,
+        seed: int | None = None,
     ):
         self.workflow = workflow
         self.plan = self._create_plan()
@@ -42,17 +41,17 @@ class ExecutionEngine:
     async def execute(
         self,
         run_id: str,
-        task_configs: Dict[str, TaskSimulationConfig],
-        timeout_seconds: Optional[float] = None,
+        task_configs: dict[str, TaskSimulationConfig],
+        timeout_seconds: float | None = None,
     ) -> RunExecutionResult:
         """Execute workflow and return complete result."""
         start_time = datetime.utcnow()
-        events: List[ExecutionEvent] = []
-        task_results: Dict[str, TaskExecutionResult] = {}
-        task_states: Dict[str, TaskState] = {
-            task_id: TaskState.PENDING for task_id in self.plan.task_ordering
-        }
-        task_attempts: Dict[str, int] = {}
+        events: list[ExecutionEvent] = []
+        task_results: dict[str, TaskExecutionResult] = {}
+        task_states: dict[str, TaskState] = dict.fromkeys(
+            self.plan.task_ordering, TaskState.PENDING
+        )
+        task_attempts: dict[str, int] = {}
 
         # Emit run started event
         events.append(
@@ -97,7 +96,7 @@ class ExecutionEngine:
                         timeout=timeout_seconds,
                     )
 
-                    for task_id, result in zip(wave.task_ids, wave_results):
+                    for task_id, result in zip(wave.task_ids, wave_results, strict=False):
                         if isinstance(result, Exception):
                             task_results[task_id] = TaskExecutionResult(
                                 task_id=task_id,
@@ -107,12 +106,12 @@ class ExecutionEngine:
                                 error_message=str(result),
                             )
                         else:
-                            task_results[task_id] = result
+                            task_results[task_id] = result  # type: ignore[assignment]
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     # Mark tasks as timed out
                     for task_id in wave.task_ids:
-                        task_states[task_id] = TaskState.TIMED_OUT
+                        task_states[task_id] = TaskState.FAILED
                         events.append(
                             ExecutionEvent(
                                 event_type=ExecutionEventType.TASK_TIMED_OUT,
@@ -138,7 +137,8 @@ class ExecutionEngine:
 
             # Determine overall success
             failed_tasks = [
-                task_id for task_id, result in task_results.items()
+                task_id
+                for task_id, result in task_results.items()
                 if not result.succeeded and not result.was_skipped
             ]
             succeeded = len(failed_tasks) == 0
@@ -193,10 +193,10 @@ class ExecutionEngine:
         self,
         run_id: str,
         task_id: str,
-        config: Optional[TaskSimulationConfig],
-        task_states: Dict[str, TaskState],
-        task_attempts: Dict[str, int],
-        events: List[ExecutionEvent],
+        config: TaskSimulationConfig | None,
+        task_states: dict[str, TaskState],
+        task_attempts: dict[str, int],
+        events: list[ExecutionEvent],
     ) -> TaskExecutionResult:
         """Execute a single task with simulated behavior."""
         async with self.semaphore:

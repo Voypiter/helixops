@@ -1,9 +1,10 @@
 """Deterministic benchmark harness for performance measurement."""
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Callable, Any
 from datetime import datetime
+from typing import Any
 
 
 @dataclass
@@ -14,8 +15,8 @@ class PerformanceMetrics:
     storage_ms: float = 0.0
     retry_ms: float = 0.0
     recovery_ms: float = 0.0
-    memory_peak_mb: Optional[float] = None
-    custom_metrics: Dict[str, float] = field(default_factory=dict)
+    memory_peak_mb: float | None = None
+    custom_metrics: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass
@@ -28,7 +29,7 @@ class BenchmarkResult:
     concurrency: int
     duration_ms: float
     throughput_tasks_per_sec: float
-    peak_memory_mb: Optional[float] = None
+    peak_memory_mb: float | None = None
     scheduler_overhead_ms: float = 0.0
     storage_overhead_ms: float = 0.0
     retry_cost_ms: float = 0.0
@@ -45,8 +46,7 @@ class BenchmarkResult:
     def meets_threshold(self, max_duration_ms: float, min_throughput: float) -> bool:
         """Check if result meets thresholds."""
         return (
-            self.duration_ms <= max_duration_ms
-            and self.throughput_tasks_per_sec >= min_throughput
+            self.duration_ms <= max_duration_ms and self.throughput_tasks_per_sec >= min_throughput
         )
 
 
@@ -63,10 +63,10 @@ class PerformanceThreshold:
 class BenchmarkRunner:
     """Deterministic benchmark runner for workflow execution."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize benchmark runner."""
-        self.results: List[BenchmarkResult] = []
-        self.thresholds: Dict[str, PerformanceThreshold] = {}
+        self.results: list[BenchmarkResult] = []
+        self.thresholds: dict[str, PerformanceThreshold] = {}
 
     def add_threshold(self, threshold: PerformanceThreshold) -> None:
         """Register a performance threshold."""
@@ -78,7 +78,7 @@ class BenchmarkRunner:
         task_count: int,
         concurrency: int,
         execution_fn: Callable[[], PerformanceMetrics],
-        name: Optional[str] = None,
+        name: str | None = None,
     ) -> BenchmarkResult:
         """Execute a deterministic benchmark.
 
@@ -118,7 +118,7 @@ class BenchmarkRunner:
         self.results.append(result)
         return result
 
-    def check_regression(self, result: BenchmarkResult) -> Dict[str, bool]:
+    def check_regression(self, result: BenchmarkResult) -> dict[str, bool]:
         """Detect performance regressions.
 
         Returns:
@@ -130,11 +130,12 @@ class BenchmarkRunner:
 
         return {
             "duration_ok": result.duration_ms <= threshold.max_duration_ms,
-            "throughput_ok": result.throughput_tasks_per_sec >= threshold.min_throughput_tasks_per_sec,
+            "throughput_ok": result.throughput_tasks_per_sec
+            >= threshold.min_throughput_tasks_per_sec,
             "overhead_ok": result.get_overhead_ratio() <= threshold.max_overhead_ratio,
         }
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get benchmark execution summary."""
         if not self.results:
             return {"total_benchmarks": 0, "avg_duration_ms": 0.0, "regressions": []}
@@ -147,11 +148,10 @@ class BenchmarkRunner:
         regressions = []
         for result in self.results:
             checks = self.check_regression(result)
-            if checks.get("checked", True):
-                if not all(
-                    checks.get(k, True) for k in ["duration_ok", "throughput_ok", "overhead_ok"]
-                ):
-                    regressions.append(result.name)
+            if checks.get("checked", True) and not all(
+                checks.get(k, True) for k in ["duration_ok", "throughput_ok", "overhead_ok"]
+            ):
+                regressions.append(result.name)
 
         return {
             "total_benchmarks": total,
@@ -193,9 +193,7 @@ class BenchmarkRunner:
             return json.dumps(data, indent=2)
 
         elif format == "csv":
-            lines = [
-                "name,profile,task_count,concurrency,duration_ms,throughput,overhead_ratio"
-            ]
+            lines = ["name,profile,task_count,concurrency,duration_ms,throughput,overhead_ratio"]
             for r in self.results:
                 lines.append(
                     f"{r.name},{r.profile},{r.task_count},{r.concurrency},"

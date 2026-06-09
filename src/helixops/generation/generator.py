@@ -1,7 +1,7 @@
 """Deterministic synthetic workflow generator."""
 
 import random
-from typing import Dict, List, Set, Tuple
+from typing import Any
 from uuid import uuid4
 
 from helixops.generation.models import (
@@ -64,7 +64,10 @@ class SyntheticWorkflowGenerator:
             workflow_id=self.workflow_id,
             name=f"Synthetic {profile_name} Workflow",
             description=f"Auto-generated {profile_name} workflow from seed {self.config.seed}",
-            tasks={task_id: {"name": f"task-{task_id}", "spec": task} for task_id, task in tasks.items()},
+            tasks={
+                task_id: {"name": f"task-{task_id}", "spec": task}
+                for task_id, task in tasks.items()
+            },
             dependencies=dependencies,
             failure_profiles=failure_profiles,
             retry_policies=retry_policies,
@@ -74,14 +77,15 @@ class SyntheticWorkflowGenerator:
                 "seed": self.config.seed,
                 "task_count": len(task_ids),
                 "dependency_count": len(dependencies),
-                "avg_task_duration_ms": sum(t.estimated_duration_ms for t in tasks.values()) // len(tasks),
+                "avg_task_duration_ms": sum(t.estimated_duration_ms for t in tasks.values())
+                // len(tasks),
             },
             config=self.config,
         )
 
         return workflow
 
-    def _generate_tasks(self) -> Dict[str, TaskSpec]:
+    def _generate_tasks(self) -> dict[str, TaskSpec]:
         """Generate task specifications.
 
         Returns:
@@ -123,7 +127,7 @@ class SyntheticWorkflowGenerator:
 
         return tasks
 
-    def _generate_dependencies(self, task_ids: List[str]) -> List[Tuple[str, str]]:
+    def _generate_dependencies(self, task_ids: list[str]) -> list[tuple[str, str]]:
         """Generate dependency structure.
 
         Args:
@@ -134,10 +138,10 @@ class SyntheticWorkflowGenerator:
         """
         _, _, _, _, dependency_density = self.PROFILE_CONFIG[self.config.profile]
 
-        dependencies: List[Tuple[str, str]] = []
-        task_indices = {tid: i for i, tid in enumerate(task_ids)}
+        dependencies: list[tuple[str, str]] = []
+        {tid: i for i, tid in enumerate(task_ids)}
 
-        for i, task_id in enumerate(task_ids):
+        for i, _task_id in enumerate(task_ids):
             # Add a few dependencies to later tasks
             for j in range(i + 1, len(task_ids)):
                 if self.rng.random() < dependency_density:
@@ -150,7 +154,7 @@ class SyntheticWorkflowGenerator:
 
         return dependencies
 
-    def _generate_failure_profiles(self, task_ids: List[str]) -> Dict[str, dict]:
+    def _generate_failure_profiles(self, task_ids: list[str]) -> dict[str, dict[str, Any]]:
         """Generate failure profiles for tasks.
 
         Args:
@@ -172,7 +176,7 @@ class SyntheticWorkflowGenerator:
 
         return profiles
 
-    def _generate_retry_policies(self, task_ids: List[str]) -> Dict[str, dict]:
+    def _generate_retry_policies(self, task_ids: list[str]) -> dict[str, dict[str, Any]]:
         """Generate retry policies for tasks.
 
         Args:
@@ -197,7 +201,7 @@ class SyntheticWorkflowGenerator:
 
         return policies
 
-    def _generate_payloads(self, task_ids: List[str]) -> Dict[str, dict]:
+    def _generate_payloads(self, task_ids: list[str]) -> dict[str, dict[str, Any]]:
         """Generate task payloads.
 
         Args:

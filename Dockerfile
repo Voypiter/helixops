@@ -8,13 +8,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy project files
-COPY pyproject.toml setup.py README.md ./
+# Copy project files and install dependencies with pinned versions
+COPY pyproject.toml setup.py README.md requirements-lock.txt ./
 COPY src/ ./src/
 COPY tests/ ./tests/
 
-# Install dependencies
-RUN pip install --no-cache-dir -e .
+# Install all dependencies (including helixops) with pinned versions for reproducible builds
+RUN pip install --no-cache-dir -r requirements-lock.txt
 
 # Create non-root user for security
 RUN useradd -m -u 1000 helixops && chown -R helixops:helixops /app

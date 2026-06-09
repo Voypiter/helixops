@@ -1,8 +1,6 @@
 """Retry policy engine with backoff calculation."""
 
-import math
 import random
-from typing import Optional
 
 
 class RetryPolicyEngine:
@@ -15,7 +13,7 @@ class RetryPolicyEngine:
         max_backoff_ms: int = 30000,
         backoff_multiplier: float = 2.0,
         jitter_factor: float = 0.1,
-        seed: Optional[int] = None,
+        seed: int | None = None,
     ):
         self.max_attempts = max_attempts
         self.initial_backoff_ms = initial_backoff_ms
@@ -33,21 +31,13 @@ class RetryPolicyEngine:
         if self.max_attempts < 1:
             raise ValueError(f"max_attempts must be >= 1, got {self.max_attempts}")
         if self.initial_backoff_ms < 0:
-            raise ValueError(
-                f"initial_backoff_ms must be >= 0, got {self.initial_backoff_ms}"
-            )
+            raise ValueError(f"initial_backoff_ms must be >= 0, got {self.initial_backoff_ms}")
         if self.max_backoff_ms < self.initial_backoff_ms:
-            raise ValueError(
-                f"max_backoff_ms must be >= initial_backoff_ms"
-            )
+            raise ValueError("max_backoff_ms must be >= initial_backoff_ms")
         if self.backoff_multiplier <= 1.0:
-            raise ValueError(
-                f"backoff_multiplier must be > 1.0, got {self.backoff_multiplier}"
-            )
+            raise ValueError(f"backoff_multiplier must be > 1.0, got {self.backoff_multiplier}")
         if not (0 <= self.jitter_factor <= 1.0):
-            raise ValueError(
-                f"jitter_factor must be in [0, 1.0], got {self.jitter_factor}"
-            )
+            raise ValueError(f"jitter_factor must be in [0, 1.0], got {self.jitter_factor}")
 
     def should_retry(self, attempt_count: int, retryable: bool) -> bool:
         """Determine if a task should be retried."""
@@ -62,9 +52,7 @@ class RetryPolicyEngine:
             return 0
 
         # Exponential backoff: initial_backoff * (multiplier ^ (attempt - 1))
-        base_backoff = self.initial_backoff_ms * (
-            self.backoff_multiplier ** (attempt_count - 1)
-        )
+        base_backoff = self.initial_backoff_ms * (self.backoff_multiplier ** (attempt_count - 1))
 
         # Cap at max
         base_backoff = min(base_backoff, self.max_backoff_ms)

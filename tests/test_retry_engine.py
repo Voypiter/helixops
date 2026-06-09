@@ -2,8 +2,8 @@
 
 import pytest
 
-from helixops.retry.policy import RetryPolicyEngine
 from helixops.retry.failures import FailureClass, FailureClassification
+from helixops.retry.policy import RetryPolicyEngine
 
 
 class TestFailureClassification:
@@ -27,9 +27,7 @@ class TestFailureClassification:
 
     def test_classify_permanent_error(self) -> None:
         """Permanent errors should not be retryable."""
-        result = FailureClassification.classify_from_error(
-            "Invalid input parameter provided"
-        )
+        result = FailureClassification.classify_from_error("Invalid input parameter provided")
 
         assert result.failure_class == FailureClass.PERMANENT
         assert result.retryable is False
@@ -43,9 +41,7 @@ class TestFailureClassification:
 
     def test_classify_poison_task(self) -> None:
         """Poison tasks should be marked as non-retriable."""
-        result = FailureClassification.classify_from_error(
-            "Fatal error - poison task"
-        )
+        result = FailureClassification.classify_from_error("Fatal error - poison task")
 
         assert result.failure_class == FailureClass.POISON
         assert result.retryable is False
@@ -53,18 +49,14 @@ class TestFailureClassification:
 
     def test_classify_dependency_failure(self) -> None:
         """Dependency failures should not retry but cascade."""
-        result = FailureClassification.classify_from_error(
-            "Upstream dependency failed"
-        )
+        result = FailureClassification.classify_from_error("Upstream dependency failed")
 
         assert result.failure_class == FailureClass.DEPENDENCY
         assert result.retryable is False
 
     def test_classify_network_error(self) -> None:
         """Network errors should be transient."""
-        result = FailureClassification.classify_from_error(
-            "Network unavailable temporarily"
-        )
+        result = FailureClassification.classify_from_error("Network unavailable temporarily")
 
         assert result.failure_class == FailureClass.TRANSIENT
         assert result.retryable is True
@@ -249,20 +241,14 @@ class TestRetryPolicyIntegration:
 
         assert policy.should_retry(attempt_count=1, retryable=classification.retryable)
         assert policy.should_retry(attempt_count=2, retryable=classification.retryable)
-        assert not policy.should_retry(
-            attempt_count=3, retryable=classification.retryable
-        )
+        assert not policy.should_retry(attempt_count=3, retryable=classification.retryable)
 
     def test_permanent_error_should_not_retry(self) -> None:
         """Permanent errors should not be retried."""
         policy = RetryPolicyEngine(max_attempts=3)
-        classification = FailureClassification.classify_from_error(
-            "Invalid configuration"
-        )
+        classification = FailureClassification.classify_from_error("Invalid configuration")
 
-        assert not policy.should_retry(
-            attempt_count=1, retryable=classification.retryable
-        )
+        assert not policy.should_retry(attempt_count=1, retryable=classification.retryable)
 
     def test_timeout_error_retry_sequence(self) -> None:
         """Timeout errors should follow backoff sequence."""

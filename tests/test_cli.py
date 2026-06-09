@@ -4,11 +4,9 @@ import json
 import tempfile
 from pathlib import Path
 
-import pytest
 from typer.testing import CliRunner
 
 from helixops.cli.app import app
-from helixops.generation.models import WorkloadProfile
 
 runner = CliRunner()
 

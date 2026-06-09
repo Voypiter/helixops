@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Any
 
 
 class WorkloadProfile(Enum):
@@ -23,9 +23,9 @@ class SyntheticWorkloadConfig:
 
     profile: WorkloadProfile
     seed: int
-    task_count_override: Optional[int] = None
+    task_count_override: int | None = None
     failure_rate: float = 0.0
-    payload_size_range: Tuple[int, int] = (100, 10000)
+    payload_size_range: tuple[int, int] = (100, 10000)
     dependency_density: float = 0.3
     max_retry_attempts: int = 3
     enable_timeout: bool = True
@@ -38,15 +38,15 @@ class GeneratedWorkflow:
     workflow_id: str
     name: str
     description: str
-    tasks: Dict[str, dict] = field(default_factory=dict)
-    dependencies: List[Tuple[str, str]] = field(default_factory=list)
-    failure_profiles: Dict[str, dict] = field(default_factory=dict)
-    retry_policies: Dict[str, dict] = field(default_factory=dict)
-    payloads: Dict[str, dict] = field(default_factory=dict)
-    metadata: Dict = field(default_factory=dict)
-    config: Optional[SyntheticWorkloadConfig] = None
+    tasks: dict[str, dict[str, Any]] = field(default_factory=dict)
+    dependencies: list[tuple[str, str]] = field(default_factory=list)
+    failure_profiles: dict[str, dict[str, Any]] = field(default_factory=dict)
+    retry_policies: dict[str, dict[str, Any]] = field(default_factory=dict)
+    payloads: dict[str, dict[str, Any]] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    config: SyntheticWorkloadConfig | None = None
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "workflow_id": self.workflow_id,
@@ -69,6 +69,6 @@ class TaskSpec:
     name: str
     estimated_duration_ms: int
     payload_size: int
-    timeout_ms: Optional[int] = None
+    timeout_ms: int | None = None
     max_retries: int = 0
     failure_rate: float = 0.0

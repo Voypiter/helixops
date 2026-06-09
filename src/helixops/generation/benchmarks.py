@@ -1,7 +1,5 @@
 """Benchmark and standard workload suites."""
 
-from typing import Dict, List
-
 from helixops.generation.generator import EdgeCaseGenerator, SyntheticWorkflowGenerator
 from helixops.generation.models import GeneratedWorkflow, SyntheticWorkloadConfig, WorkloadProfile
 
@@ -10,7 +8,7 @@ class BenchmarkSuite:
     """Pre-configured benchmark workloads for testing and development."""
 
     @staticmethod
-    def smoke_test() -> List[GeneratedWorkflow]:
+    def smoke_test() -> list[GeneratedWorkflow]:
         """Generate minimal test suite for quick smoke tests.
 
         Returns:
@@ -23,7 +21,7 @@ class BenchmarkSuite:
         ]
 
     @staticmethod
-    def regression_suite() -> List[GeneratedWorkflow]:
+    def regression_suite() -> list[GeneratedWorkflow]:
         """Generate workflows for regression testing.
 
         Returns:
@@ -41,18 +39,20 @@ class BenchmarkSuite:
             workflows.append(gen.generate())
 
         # Add edge cases
-        workflows.extend([
-            EdgeCaseGenerator.single_task(seed=2100),
-            EdgeCaseGenerator.chain_pattern(length=10, seed=2101),
-            EdgeCaseGenerator.diamond_pattern(seed=2102),
-            EdgeCaseGenerator.wide_pattern(width=20, seed=2103),
-            EdgeCaseGenerator.disconnected_components(num_components=2, seed=2104),
-        ])
+        workflows.extend(
+            [
+                EdgeCaseGenerator.single_task(seed=2100),
+                EdgeCaseGenerator.chain_pattern(length=10, seed=2101),
+                EdgeCaseGenerator.diamond_pattern(seed=2102),
+                EdgeCaseGenerator.wide_pattern(width=20, seed=2103),
+                EdgeCaseGenerator.disconnected_components(num_components=2, seed=2104),
+            ]
+        )
 
         return workflows
 
     @staticmethod
-    def scalability_suite() -> List[GeneratedWorkflow]:
+    def scalability_suite() -> list[GeneratedWorkflow]:
         """Generate workflows for scalability testing.
 
         Returns:
@@ -91,7 +91,7 @@ class BenchmarkSuite:
         return workflows
 
     @staticmethod
-    def resilience_suite() -> List[GeneratedWorkflow]:
+    def resilience_suite() -> list[GeneratedWorkflow]:
         """Generate workflows for resilience and recovery testing.
 
         Returns:
@@ -124,7 +124,7 @@ class BenchmarkSuite:
         return workflows
 
     @staticmethod
-    def pathological_suite() -> List[GeneratedWorkflow]:
+    def pathological_suite() -> list[GeneratedWorkflow]:
         """Generate pathological and edge-case workflows.
 
         Returns:
@@ -145,7 +145,9 @@ class BenchmarkSuite:
         # Disconnected components
         for num_comp in [2, 5, 10]:
             workflows.append(
-                EdgeCaseGenerator.disconnected_components(num_components=num_comp, seed=5020 + num_comp)
+                EdgeCaseGenerator.disconnected_components(
+                    num_components=num_comp, seed=5020 + num_comp
+                )
             )
 
         # Single task
@@ -158,7 +160,7 @@ class WorkloadLibrary:
     """Standard workloads for common scenarios."""
 
     @staticmethod
-    def get_all_benchmarks() -> Dict[str, List[GeneratedWorkflow]]:
+    def get_all_benchmarks() -> dict[str, list[GeneratedWorkflow]]:
         """Get all benchmark suites.
 
         Returns:
@@ -192,6 +194,8 @@ class WorkloadLibrary:
 
         suite = benchmarks[suite_name]
         if index >= len(suite):
-            raise ValueError(f"Index {index} out of range for suite {suite_name} (max {len(suite)})")
+            raise ValueError(
+                f"Index {index} out of range for suite {suite_name} (max {len(suite)})"
+            )
 
         return suite[index]

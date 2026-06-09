@@ -1,12 +1,11 @@
 """Recovery audit trail and reconciliation diagnostics."""
 
-from typing import List, Optional, Dict
-from datetime import datetime
+from typing import Any
 from uuid import uuid4
 
 from helixops.recovery.models import (
-    RecoveryAuditEvent,
     RecoveryAction,
+    RecoveryAuditEvent,
     RecoveryState,
     TaskRecoveryDecision,
 )
@@ -15,9 +14,9 @@ from helixops.recovery.models import (
 class RecoveryAuditTrail:
     """Maintains audit trail of recovery actions for diagnostics."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize audit trail."""
-        self.events: List[RecoveryAuditEvent] = []
+        self.events: list[RecoveryAuditEvent] = []
 
     def log_recovery_decision(
         self,
@@ -76,7 +75,7 @@ class RecoveryAuditTrail:
         self,
         run_id: str,
         success: bool,
-        stats: Dict,
+        stats: dict[str, Any],
     ) -> RecoveryAuditEvent:
         """Log completion of run recovery.
 
@@ -104,7 +103,7 @@ class RecoveryAuditTrail:
         self.events.append(event)
         return event
 
-    def get_run_audit_trail(self, run_id: str) -> List[RecoveryAuditEvent]:
+    def get_run_audit_trail(self, run_id: str) -> list[RecoveryAuditEvent]:
         """Get all audit events for a run.
 
         Args:
@@ -118,7 +117,7 @@ class RecoveryAuditTrail:
             key=lambda e: e.timestamp,
         )
 
-    def get_recovery_diagnostics(self, run_id: str) -> Dict:
+    def get_recovery_diagnostics(self, run_id: str) -> dict[str, Any]:
         """Get diagnostic summary of recovery operations.
 
         Args:
@@ -136,8 +135,8 @@ class RecoveryAuditTrail:
         end_time = trail[-1].timestamp
         duration_ms = int((end_time - start_time).total_seconds() * 1000)
 
-        action_counts: Dict[str, int] = {}
-        state_counts: Dict[str, int] = {}
+        action_counts: dict[str, int] = {}
+        state_counts: dict[str, int] = {}
 
         for event in trail:
             action = event.action.value
@@ -174,7 +173,7 @@ class RecoveryAuditTrail:
 
         lines = [
             f"Recovery Report for Run: {run_id}",
-            f"=" * 60,
+            "=" * 60,
             f"Total Events: {diagnostics['recovery_events']}",
             f"Duration: {diagnostics['duration_ms']}ms",
             f"Task Decisions: {diagnostics['task_decisions']}",

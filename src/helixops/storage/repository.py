@@ -1,15 +1,16 @@
 """Repository abstractions for data persistence."""
 
-from typing import List, Optional
+from typing import Any
+
 from sqlalchemy.orm import Session
 
+from helixops.execution.models import RunExecutionResult
 from helixops.storage.models import (
-    WorkflowModel,
+    ExecutionEventModel,
     ExecutionRunModel,
     TaskAttemptModel,
-    ExecutionEventModel,
+    WorkflowModel,
 )
-from helixops.execution.models import ExecutionEvent, TaskExecutionResult, RunExecutionResult
 
 
 class WorkflowRepository:
@@ -18,7 +19,7 @@ class WorkflowRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def save(self, workflow_id: str, name: str, definition: dict) -> WorkflowModel:
+    def save(self, workflow_id: str, name: str, definition: dict[str, Any]) -> WorkflowModel:
         """Save a workflow definition."""
         workflow = WorkflowModel(
             workflow_id=workflow_id,
@@ -29,11 +30,11 @@ class WorkflowRepository:
         self.session.flush()
         return workflow
 
-    def get(self, workflow_id: str) -> Optional[WorkflowModel]:
+    def get(self, workflow_id: str) -> WorkflowModel | None:
         """Get a workflow by ID."""
         return self.session.query(WorkflowModel).filter_by(workflow_id=workflow_id).first()
 
-    def list_all(self) -> List[WorkflowModel]:
+    def list_all(self) -> list[WorkflowModel]:
         """Get all workflows."""
         return self.session.query(WorkflowModel).all()
 
@@ -65,17 +66,13 @@ class ExecutionRunRepository:
         self.session.merge(run)
         self.session.flush()
 
-    def get(self, run_id: str) -> Optional[ExecutionRunModel]:
+    def get(self, run_id: str) -> ExecutionRunModel | None:
         """Get a run by ID."""
         return self.session.query(ExecutionRunModel).filter_by(run_id=run_id).first()
 
-    def get_by_workflow(self, workflow_id: str) -> List[ExecutionRunModel]:
+    def get_by_workflow(self, workflow_id: str) -> list[ExecutionRunModel]:
         """Get all runs for a workflow."""
-        return (
-            self.session.query(ExecutionRunModel)
-            .filter_by(workflow_id=workflow_id)
-            .all()
-        )
+        return self.session.query(ExecutionRunModel).filter_by(workflow_id=workflow_id).all()
 
 
 class TaskAttemptRepository:
@@ -95,29 +92,17 @@ class TaskAttemptRepository:
         self.session.merge(attempt)
         self.session.flush()
 
-    def get(self, attempt_id: str) -> Optional[TaskAttemptModel]:
+    def get(self, attempt_id: str) -> TaskAttemptModel | None:
         """Get an attempt by ID."""
-        return (
-            self.session.query(TaskAttemptModel)
-            .filter_by(attempt_id=attempt_id)
-            .first()
-        )
+        return self.session.query(TaskAttemptModel).filter_by(attempt_id=attempt_id).first()
 
-    def get_by_run(self, run_id: str) -> List[TaskAttemptModel]:
+    def get_by_run(self, run_id: str) -> list[TaskAttemptModel]:
         """Get all attempts in a run."""
-        return (
-            self.session.query(TaskAttemptModel)
-            .filter_by(run_id=run_id)
-            .all()
-        )
+        return self.session.query(TaskAttemptModel).filter_by(run_id=run_id).all()
 
-    def get_by_task(self, run_id: str, task_id: str) -> List[TaskAttemptModel]:
+    def get_by_task(self, run_id: str, task_id: str) -> list[TaskAttemptModel]:
         """Get all attempts for a task in a run."""
-        return (
-            self.session.query(TaskAttemptModel)
-            .filter_by(run_id=run_id, task_id=task_id)
-            .all()
-        )
+        return self.session.query(TaskAttemptModel).filter_by(run_id=run_id, task_id=task_id).all()
 
 
 class ExecutionEventRepository:
@@ -132,15 +117,11 @@ class ExecutionEventRepository:
         self.session.flush()
         return event
 
-    def get(self, event_id: str) -> Optional[ExecutionEventModel]:
+    def get(self, event_id: str) -> ExecutionEventModel | None:
         """Get an event by ID."""
-        return (
-            self.session.query(ExecutionEventModel)
-            .filter_by(event_id=event_id)
-            .first()
-        )
+        return self.session.query(ExecutionEventModel).filter_by(event_id=event_id).first()
 
-    def get_by_run(self, run_id: str) -> List[ExecutionEventModel]:
+    def get_by_run(self, run_id: str) -> list[ExecutionEventModel]:
         """Get all events for a run."""
         return (
             self.session.query(ExecutionEventModel)
@@ -149,7 +130,7 @@ class ExecutionEventRepository:
             .all()
         )
 
-    def get_by_task(self, attempt_id: str) -> List[ExecutionEventModel]:
+    def get_by_task(self, attempt_id: str) -> list[ExecutionEventModel]:
         """Get all events for a task attempt."""
         return (
             self.session.query(ExecutionEventModel)
@@ -184,11 +165,11 @@ class PersistenceService:
             run = self.session.merge(run)
 
         # Update run with final state
-        run.succeeded = result.succeeded
-        run.completed_at = result.events[-1].timestamp if result.events else None
-        run.total_duration_ms = result.total_duration_ms
-        run.error_message = result.error_message
-        run.state = "SUCCEEDED" if result.succeeded else "FAILED"
+        run.succeeded = result.succeeded  # type: ignore[assignment]
+        run.completed_at = result.events[-1].timestamp if result.events else None  # type: ignore[assignment]
+        run.total_duration_ms = result.total_duration_ms  # type: ignore[assignment]
+        run.error_message = result.error_message  # type: ignore[assignment]
+        run.state = "SUCCEEDED" if result.succeeded else "FAILED"  # type: ignore[assignment]
 
         # Persist task attempts
         for task_id, task_result in result.task_results.items():

@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict
+from typing import Any
 
 
 @dataclass
@@ -12,8 +12,8 @@ class HealthStatus:
     status: str = "healthy"  # healthy, degraded, unhealthy
     ready: bool = True
     timestamp: datetime = field(default_factory=datetime.utcnow)
-    checks: Dict[str, bool] = field(default_factory=dict)
-    metrics: Dict = field(default_factory=dict)
+    checks: dict[str, bool] = field(default_factory=dict)
+    metrics: dict[str, Any] = field(default_factory=dict)
 
     def add_check(self, name: str, passed: bool) -> None:
         """Add a health check result."""
@@ -21,7 +21,7 @@ class HealthStatus:
         if not passed:
             self.status = "degraded"
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "status": self.status,

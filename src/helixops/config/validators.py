@@ -1,6 +1,7 @@
 """Input validation and safety limit enforcement."""
 
-from typing import Any, Dict, List
+from typing import Any
+
 from helixops.config.settings import get_config
 
 
@@ -82,12 +83,10 @@ class InputValidator:
         if limit < 1:
             raise ValidationError("limit must be >= 1")
         if limit > config.api.pagination_max_limit:
-            raise ValidationError(
-                f"limit {limit} exceeds max {config.api.pagination_max_limit}"
-            )
+            raise ValidationError(f"limit {limit} exceeds max {config.api.pagination_max_limit}")
 
     @staticmethod
-    def validate_workflow_definition(workflow_dict: Dict[str, Any]) -> None:
+    def validate_workflow_definition(workflow_dict: dict[str, Any]) -> None:
         """Validate workflow definition structure.
 
         Args:
@@ -116,13 +115,11 @@ class InputValidator:
 
         if config.security.input_validation_strict:
             # Validate task structure
-            for task_id, task_def in tasks.items():
+            for task_id, _task_def in tasks.items():
                 if not isinstance(task_id, str):
                     raise ValidationError(f"Task ID must be string, got {type(task_id)}")
                 if not task_id.replace("_", "").replace("-", "").isalnum():
-                    raise ValidationError(
-                        f"Task ID '{task_id}' contains invalid characters"
-                    )
+                    raise ValidationError(f"Task ID '{task_id}' contains invalid characters")
 
 
 class RateLimiter:
@@ -136,7 +133,7 @@ class RateLimiter:
         """
         self.max_requests = requests_per_minute
         self.window_seconds = 60
-        self.request_times: List[float] = []
+        self.request_times: list[float] = []
 
     def is_allowed(self, timestamp: float) -> bool:
         """Check if request is allowed.
@@ -148,10 +145,7 @@ class RateLimiter:
             True if request is within rate limit
         """
         # Remove old entries outside window
-        self.request_times = [
-            t for t in self.request_times
-            if timestamp - t < self.window_seconds
-        ]
+        self.request_times = [t for t in self.request_times if timestamp - t < self.window_seconds]
 
         if len(self.request_times) >= self.max_requests:
             return False
@@ -177,9 +171,7 @@ class SafetyLimits:
         max_bytes = config.api.max_request_size_mb * 1024 * 1024
 
         if content_length > max_bytes:
-            raise ValidationError(
-                f"Request size {content_length} bytes exceeds limit {max_bytes}"
-            )
+            raise ValidationError(f"Request size {content_length} bytes exceeds limit {max_bytes}")
 
     @staticmethod
     def enforce_event_retention(event_count: int) -> bool:

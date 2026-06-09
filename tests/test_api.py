@@ -1,8 +1,5 @@
 """Tests for FastAPI endpoints."""
 
-import json
-
-import pytest
 from fastapi.testclient import TestClient
 
 from helixops.api.app import app

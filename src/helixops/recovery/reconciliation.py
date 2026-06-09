@@ -1,18 +1,18 @@
 """Reconciliation and recovery diagnostics service."""
 
-from typing import Dict, List, Optional
+from typing import Any
+
 from sqlalchemy.orm import Session
 
-from helixops.recovery.manager import CrashRecoveryManager
 from helixops.recovery.audit import RecoveryAuditTrail
-from helixops.recovery.models import RecoveryResult
+from helixops.recovery.manager import CrashRecoveryManager
 from helixops.storage.repository import ExecutionRunRepository
 
 
 class ReconciliationService:
     """Service for comprehensive run reconciliation and recovery diagnostics."""
 
-    def __init__(self, session: Session):
+    def __init__(self, session: Session) -> None:
         """Initialize reconciliation service.
 
         Args:
@@ -23,7 +23,7 @@ class ReconciliationService:
         self.audit_trail = RecoveryAuditTrail()
         self.runs = ExecutionRunRepository(session)
 
-    def reconcile_run(self, run_id: str) -> Dict:
+    def reconcile_run(self, run_id: str) -> dict[str, Any]:
         """Reconcile and recover a run, with full audit trail.
 
         Args:
@@ -64,7 +64,7 @@ class ReconciliationService:
             "report": report,
         }
 
-    def reconcile_workflows(self, workflow_ids: List[str]) -> Dict[str, Dict]:
+    def reconcile_workflows(self, workflow_ids: list[str]) -> dict[str, dict[str, Any]]:
         """Reconcile multiple workflows.
 
         Args:
@@ -74,9 +74,9 @@ class ReconciliationService:
             Dictionary mapping workflow IDs to reconciliation results
         """
         results = {}
-        for workflow_id in workflow_ids:
+        for _workflow_id in workflow_ids:
             # Get all runs for this workflow
-            all_runs = self.runs.session.query(
+            all_runs = self.runs.session.query(  # type: ignore[call-overload]
                 "SELECT run_id FROM execution_runs WHERE workflow_id = ?"
             ).all()
 
@@ -93,7 +93,7 @@ class ReconciliationService:
 
         return results
 
-    def get_reconciliation_summary(self) -> Dict:
+    def get_reconciliation_summary(self) -> dict[str, Any]:
         """Get summary of all reconciliation operations.
 
         Returns:
@@ -105,7 +105,7 @@ class ReconciliationService:
         unique_runs = len({e.run_id for e in all_trails})
         task_decisions = len({e.event_id for e in all_trails if e.task_id})
 
-        action_summary = {}
+        action_summary: dict[str, int] = {}
         for event in all_trails:
             action = event.action.value
             action_summary[action] = action_summary.get(action, 0) + 1
@@ -117,7 +117,7 @@ class ReconciliationService:
             "action_summary": action_summary,
         }
 
-    def export_reconciliation_history(self) -> List[Dict]:
+    def export_reconciliation_history(self) -> list[dict[str, Any]]:
         """Export full reconciliation history for audit.
 
         Returns:

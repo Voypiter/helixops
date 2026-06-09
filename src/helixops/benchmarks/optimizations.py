@@ -1,8 +1,8 @@
 """Performance optimizations for scheduler and persistence layers."""
 
 import time
-from typing import Dict, Set, List, Optional
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -23,10 +23,10 @@ class SchedulerOptimizer:
 
     @staticmethod
     def optimize_task_selection(
-        ready_tasks: List[str],
-        task_priorities: Dict[str, int],
+        ready_tasks: list[str],
+        task_priorities: dict[str, int],
         max_concurrent: int,
-    ) -> List[str]:
+    ) -> list[str]:
         """Optimized task selection using priority queue.
 
         Uses cached priority ordering instead of repeated sorting.
@@ -43,16 +43,14 @@ class SchedulerOptimizer:
             return []
 
         # Sort only once, using cached priorities
-        sorted_tasks = sorted(
-            ready_tasks, key=lambda t: task_priorities.get(t, 0), reverse=True
-        )
+        sorted_tasks = sorted(ready_tasks, key=lambda t: task_priorities.get(t, 0), reverse=True)
         return sorted_tasks[:max_concurrent]
 
     @staticmethod
     def optimize_dependency_check(
         task_id: str,
-        dependencies: Dict[str, Set[str]],
-        completed_tasks: Set[str],
+        dependencies: dict[str, set[str]],
+        completed_tasks: set[str],
     ) -> bool:
         """Fast dependency check using set intersection.
 
@@ -118,7 +116,7 @@ class PersistenceOptimizer:
         event_count: int,
         batch_size: int,
         events_per_second: float = 1000.0,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Estimate I/O savings from batching.
 
         Args:
@@ -143,9 +141,9 @@ class PersistenceOptimizer:
             "batched_roundtrips": float(batched_roundtrips),
             "roundtrips_saved": float(reduction),
             "estimated_time_saved_ms": float(saved_time_ms),
-            "throughput_improvement_percent": (saved_time_ms / unbatched_time_ms * 100)
-            if unbatched_time_ms > 0
-            else 0.0,
+            "throughput_improvement_percent": (
+                (saved_time_ms / unbatched_time_ms * 100) if unbatched_time_ms > 0 else 0.0
+            ),
         }
 
 
@@ -174,8 +172,7 @@ class HotPathOptimizer:
             "RETRYING": {"READY", "FAILED", "CANCELLED"},
         }
 
-        current_valid = valid_transitions.get(from_state, set())
-        is_valid = to_state in current_valid
+        valid_transitions.get(from_state, set())
 
         duration_ms = (time.perf_counter() - start) * 1000
         return duration_ms
@@ -183,7 +180,7 @@ class HotPathOptimizer:
     @staticmethod
     def optimize_event_persistence(
         event_count: int, with_batching: bool = True
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Estimate event persistence overhead.
 
         Args:
@@ -240,7 +237,7 @@ class PerformanceTuning:
     }
 
     @staticmethod
-    def recommend_tuning(task_count: int) -> Dict[str, any]:
+    def recommend_tuning(task_count: int) -> dict[str, Any]:
         """Get tuning recommendations based on workload size.
 
         Args:

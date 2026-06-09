@@ -1,18 +1,17 @@
 """SQLAlchemy ORM models for persistence."""
 
 from datetime import datetime
-from sqlalchemy import (
-    Column, String, Integer, Float, Boolean, DateTime, JSON, ForeignKey, Index
-)
+
+from sqlalchemy import JSON, Boolean, Column, DateTime, Float, ForeignKey, Index, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-
 
 Base = declarative_base()
 
 
-class WorkflowModel(Base):
+class WorkflowModel(Base):  # type: ignore[misc,valid-type]
     """Persistent workflow definition."""
+
     __tablename__ = "workflows"
 
     workflow_id = Column(String(255), primary_key=True)
@@ -24,13 +23,12 @@ class WorkflowModel(Base):
 
     runs = relationship("ExecutionRunModel", back_populates="workflow")
 
-    __table_args__ = (
-        Index("idx_workflow_name", "name"),
-    )
+    __table_args__ = (Index("idx_workflow_name", "name"),)
 
 
-class ExecutionRunModel(Base):
+class ExecutionRunModel(Base):  # type: ignore[misc,valid-type]
     """Persistent execution run."""
+
     __tablename__ = "execution_runs"
 
     run_id = Column(String(255), primary_key=True)
@@ -54,8 +52,9 @@ class ExecutionRunModel(Base):
     )
 
 
-class TaskAttemptModel(Base):
+class TaskAttemptModel(Base):  # type: ignore[misc,valid-type]
     """Persistent task execution attempt."""
+
     __tablename__ = "task_attempts"
 
     attempt_id = Column(String(255), primary_key=True)
@@ -85,8 +84,9 @@ class TaskAttemptModel(Base):
     )
 
 
-class ExecutionEventModel(Base):
+class ExecutionEventModel(Base):  # type: ignore[misc,valid-type]
     """Persistent execution event."""
+
     __tablename__ = "execution_events"
 
     event_id = Column(String(255), primary_key=True)

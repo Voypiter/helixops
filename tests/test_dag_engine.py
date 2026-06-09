@@ -2,8 +2,8 @@
 
 import pytest
 
-from helixops.domain.errors import CyclicDependencyError, ValidationError
-from helixops.domain.models import Workflow, TaskNode, RetryPolicy
+from helixops.domain.errors import CyclicDependencyError
+from helixops.domain.models import TaskNode, Workflow
 from helixops.planning.dag_engine import DAGPlanningEngine
 
 
@@ -79,9 +79,7 @@ class TestDAGPlanningEngine:
 
         # Add 10 parallel tasks
         for i in range(10):
-            workflow.add_task(
-                TaskNode(task_id=f"task{i}", name=f"Task{i}", depends_on=["root"])
-            )
+            workflow.add_task(TaskNode(task_id=f"task{i}", name=f"Task{i}", depends_on=["root"]))
 
         engine = DAGPlanningEngine(workflow)
         plan = engine.plan()
@@ -225,9 +223,7 @@ class TestDAGPlanningEngine:
         workflow.add_task(TaskNode(task_id="root", name="Root"))
 
         for i in range(5):
-            workflow.add_task(
-                TaskNode(task_id=f"t{i}", name=f"T{i}", depends_on=["root"])
-            )
+            workflow.add_task(TaskNode(task_id=f"t{i}", name=f"T{i}", depends_on=["root"]))
 
         engine = DAGPlanningEngine(workflow)
         analysis = engine.analyze_graph()
@@ -256,9 +252,7 @@ class TestDAGPlanningEngine:
         workflow.add_task(TaskNode(task_id="root", name="Root"))
 
         for i in range(4):
-            workflow.add_task(
-                TaskNode(task_id=f"t{i}", name=f"T{i}", depends_on=["root"])
-            )
+            workflow.add_task(TaskNode(task_id=f"t{i}", name=f"T{i}", depends_on=["root"]))
 
         workflow.add_task(
             TaskNode(task_id="merge", name="Merge", depends_on=[f"t{i}" for i in range(4)])
@@ -325,9 +319,7 @@ class TestDAGPlanningEngine:
         workflow.add_task(TaskNode(task_id="c2", name="C2", depends_on=["b2", "b3"]))
 
         # Fan-in to root
-        workflow.add_task(
-            TaskNode(task_id="final", name="Final", depends_on=["c1", "c2"])
-        )
+        workflow.add_task(TaskNode(task_id="final", name="Final", depends_on=["c1", "c2"]))
 
         engine = DAGPlanningEngine(workflow)
         plan = engine.plan()

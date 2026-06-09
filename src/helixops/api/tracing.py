@@ -1,10 +1,8 @@
 """Request tracing and correlation for API diagnostics."""
 
 import time
-from typing import Dict, Optional
+from typing import Any
 from uuid import uuid4
-
-from fastapi import Request
 
 
 class RequestContext:
@@ -18,8 +16,8 @@ class RequestContext:
         """
         self.request_id = request_id
         self.start_time = time.time()
-        self.tags: Dict[str, str] = {}
-        self.measurements: Dict[str, float] = {}
+        self.tags: dict[str, str] = {}
+        self.measurements: dict[str, float] = {}
 
     def tag(self, key: str, value: str) -> None:
         """Add a tag to the request context.
@@ -47,7 +45,7 @@ class RequestContext:
         """
         return (time.time() - self.start_time) * 1000
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert context to dictionary.
 
         Returns:
@@ -64,12 +62,12 @@ class RequestContext:
 class RequestTracer:
     """Traces and correlates requests across the system."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize request tracer."""
-        self.contexts: Dict[str, RequestContext] = {}
+        self.contexts: dict[str, RequestContext] = {}
         self.max_contexts = 1000
 
-    def create_context(self, request_id: Optional[str] = None) -> RequestContext:
+    def create_context(self, request_id: str | None = None) -> RequestContext:
         """Create a new request context.
 
         Args:
@@ -87,7 +85,7 @@ class RequestTracer:
             oldest_keys = sorted(
                 self.contexts.keys(),
                 key=lambda k: self.contexts[k].start_time,
-            )[:self.max_contexts // 2]
+            )[: self.max_contexts // 2]
             for key in oldest_keys:
                 del self.contexts[key]
 
@@ -95,7 +93,7 @@ class RequestTracer:
         self.contexts[request_id] = context
         return context
 
-    def get_context(self, request_id: str) -> Optional[RequestContext]:
+    def get_context(self, request_id: str) -> RequestContext | None:
         """Get a request context by ID.
 
         Args:
@@ -106,7 +104,7 @@ class RequestTracer:
         """
         return self.contexts.get(request_id)
 
-    def complete_context(self, request_id: str) -> Optional[Dict]:
+    def complete_context(self, request_id: str) -> dict[str, Any] | None:
         """Mark a context as completed and return its summary.
 
         Args:
@@ -126,11 +124,11 @@ class RequestTracer:
 class RequestDiagnostics:
     """Diagnostics information for API requests."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize diagnostics."""
         self.tracer = RequestTracer()
-        self.request_counts: Dict[str, int] = {}
-        self.error_counts: Dict[str, int] = {}
+        self.request_counts: dict[str, int] = {}
+        self.error_counts: dict[str, int] = {}
 
     def record_request(self, endpoint: str, method: str) -> str:
         """Record a new request.
@@ -162,7 +160,7 @@ class RequestDiagnostics:
         key = f"{endpoint}:{error_type}"
         self.error_counts[key] = self.error_counts.get(key, 0) + 1
 
-    def get_summary(self) -> Dict:
+    def get_summary(self) -> dict[str, Any]:
         """Get diagnostics summary.
 
         Returns:

@@ -1,21 +1,19 @@
 """Crash recovery manager for resuming interrupted executions."""
 
-from typing import List, Optional, Dict, Set
-from datetime import datetime
 from sqlalchemy.orm import Session
 
-from helixops.storage.models import ExecutionRunModel, TaskAttemptModel, ExecutionEventModel
+from helixops.recovery.models import (
+    RecoveryAction,
+    RecoveryResult,
+    RecoveryState,
+    RunRecoveryState,
+    TaskRecoveryDecision,
+)
+from helixops.storage.models import ExecutionEventModel, TaskAttemptModel
 from helixops.storage.repository import (
+    ExecutionEventRepository,
     ExecutionRunRepository,
     TaskAttemptRepository,
-    ExecutionEventRepository,
-)
-from helixops.recovery.models import (
-    RecoveryState,
-    RecoveryAction,
-    TaskRecoveryDecision,
-    RunRecoveryState,
-    RecoveryResult,
 )
 
 
@@ -52,36 +50,35 @@ class CrashRecoveryManager:
         # Classify run state
         has_run_start = any(e.event_type in {"RUN_STARTED", "RUN_RUNNING"} for e in events)
         has_run_end = any(
-            e.event_type in {"RUN_SUCCEEDED", "RUN_FAILED", "RUN_CANCELLED"}
-            for e in events
+            e.event_type in {"RUN_SUCCEEDED", "RUN_FAILED", "RUN_CANCELLED"} for e in events
         )
 
         # Classify each task
-        incomplete_tasks: List[str] = []
-        in_progress_tasks: List[str] = []
-        completed_tasks: List[str] = []
-        failed_tasks: List[str] = []
-        unknown_tasks: List[str] = []
+        incomplete_tasks: list[str] = []
+        in_progress_tasks: list[str] = []
+        completed_tasks: list[str] = []
+        failed_tasks: list[str] = []
+        unknown_tasks: list[str] = []
 
         task_ids = {attempt.task_id for attempt in attempts}
 
         for task_id in task_ids:
-            recovery_state = self._classify_task_state(task_id, run_id, attempts, events)
+            recovery_state = self._classify_task_state(task_id, run_id, attempts, events)  # type: ignore[arg-type]
 
             if recovery_state == RecoveryState.COMPLETED:
-                completed_tasks.append(task_id)
+                completed_tasks.append(task_id)  # type: ignore[arg-type]
             elif recovery_state == RecoveryState.FAILED:
-                failed_tasks.append(task_id)
+                failed_tasks.append(task_id)  # type: ignore[arg-type]
             elif recovery_state == RecoveryState.SAFE_TO_RESUME:
-                in_progress_tasks.append(task_id)
+                in_progress_tasks.append(task_id)  # type: ignore[arg-type]
             elif recovery_state == RecoveryState.UNSAFE:
-                incomplete_tasks.append(task_id)
+                incomplete_tasks.append(task_id)  # type: ignore[arg-type]
             else:  # UNKNOWN
-                unknown_tasks.append(task_id)
+                unknown_tasks.append(task_id)  # type: ignore[arg-type]
 
         return RunRecoveryState(
             run_id=run_id,
-            workflow_id=run.workflow_id,
+            workflow_id=run.workflow_id,  # type: ignore[arg-type]
             is_complete=has_run_end,
             incomplete_tasks=incomplete_tasks,
             in_progress_tasks=in_progress_tasks,
@@ -91,15 +88,15 @@ class CrashRecoveryManager:
             total_event_count=len(events),
             has_run_start=has_run_start,
             has_run_end=has_run_end,
-            last_event_timestamp=events[-1].timestamp if events else None,
+            last_event_timestamp=events[-1].timestamp if events else None,  # type: ignore[arg-type]
         )
 
     def _classify_task_state(
         self,
         task_id: str,
         run_id: str,
-        all_attempts: List[TaskAttemptModel],
-        all_events: List[ExecutionEventModel],
+        all_attempts: list[TaskAttemptModel],
+        all_events: list[ExecutionEventModel],
     ) -> RecoveryState:
         """Classify recovery state for a single task.
 
@@ -117,7 +114,7 @@ class CrashRecoveryManager:
         if not task_attempts:
             return RecoveryState.UNKNOWN
 
-        latest_attempt = max(task_attempts, key=lambda a: a.attempt_number)
+        max(task_attempts, key=lambda a: a.attempt_number)
         task_events = [e for e in all_events if e.task_id == task_id]
 
         if not task_events:
@@ -138,9 +135,7 @@ class CrashRecoveryManager:
         # In progress if last event is running
         if last_event.event_type == "TASK_RUNNING":
             # Check if we have event history completeness
-            has_start = any(
-                e.event_type == "TASK_PENDING" for e in task_events
-            )
+            has_start = any(e.event_type == "TASK_PENDING" for e in task_events)
             if has_start:
                 return RecoveryState.SAFE_TO_RESUME
             return RecoveryState.UNSAFE
@@ -179,7 +174,7 @@ class CrashRecoveryManager:
                 failed_tasks=len(recovery_state.failed_tasks),
             )
 
-        decisions: List[TaskRecoveryDecision] = []
+        decisions: list[TaskRecoveryDecision] = []
 
         # Preserve all completed tasks
         for task_id in recovery_state.completed_tasks:
@@ -272,7 +267,7 @@ class CrashRecoveryManager:
         except ValueError:
             return False
 
-    def get_completed_tasks(self, run_id: str) -> Set[str]:
+    def get_completed_tasks(self, run_id: str) -> set[str]:
         """Get all completed tasks in a run.
 
         Args:
@@ -284,7 +279,7 @@ class CrashRecoveryManager:
         recovery_state = self.inspect_run_state(run_id)
         return set(recovery_state.completed_tasks)
 
-    def get_tasks_to_requeue(self, run_id: str) -> List[str]:
+    def get_tasks_to_requeue(self, run_id: str) -> list[str]:
         """Get tasks that should be requeued.
 
         Args:

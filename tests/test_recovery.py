@@ -6,12 +6,17 @@ from datetime import datetime, timedelta
 
 import pytest  # noqa: F401
 
-from helixops.storage.database import DatabaseConnection
-from helixops.storage.models import ExecutionRunModel, TaskAttemptModel, ExecutionEventModel
-from helixops.storage.repository import ExecutionRunRepository, TaskAttemptRepository, ExecutionEventRepository, WorkflowRepository
-from helixops.recovery.manager import CrashRecoveryManager
 from helixops.recovery.audit import RecoveryAuditTrail
-from helixops.recovery.models import RecoveryState, RecoveryAction
+from helixops.recovery.manager import CrashRecoveryManager
+from helixops.recovery.models import RecoveryAction, RecoveryState
+from helixops.storage.database import DatabaseConnection
+from helixops.storage.models import ExecutionEventModel, TaskAttemptModel
+from helixops.storage.repository import (
+    ExecutionEventRepository,
+    ExecutionRunRepository,
+    TaskAttemptRepository,
+    WorkflowRepository,
+)
 
 
 @pytest.fixture
@@ -51,7 +56,9 @@ class TestCrashRecoveryManager:
 
             event_repo = ExecutionEventRepository(session)
             base_time = datetime.utcnow()
-            for i, event_type in enumerate(["RUN_STARTED", "TASK_PENDING", "TASK_RUNNING", "TASK_SUCCEEDED", "RUN_SUCCEEDED"]):
+            for i, event_type in enumerate(
+                ["RUN_STARTED", "TASK_PENDING", "TASK_RUNNING", "TASK_SUCCEEDED", "RUN_SUCCEEDED"]
+            ):
                 event = ExecutionEventModel(
                     event_id=f"event-{event_type}",
                     run_id="run-1",
@@ -222,7 +229,9 @@ class TestCrashRecoveryManager:
 
             assert result.recovered is True
             assert result.failed_tasks == 1
-            failed_decision = [d for d in result.decisions if d.action == RecoveryAction.MARK_FAILED][0]
+            failed_decision = [
+                d for d in result.decisions if d.action == RecoveryAction.MARK_FAILED
+            ][0]
             assert failed_decision.recovery_state == RecoveryState.UNSAFE
 
     def test_get_completed_tasks(self, temp_db) -> None:

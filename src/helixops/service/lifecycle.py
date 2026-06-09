@@ -1,10 +1,11 @@
 """Graceful shutdown and deployment lifecycle management."""
 
-import signal
 import asyncio
-from typing import Callable, List, Optional
+import signal
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 
 @dataclass
@@ -21,17 +22,17 @@ class ShutdownEvent:
 class LifecycleManager:
     """Manages runtime lifecycle including graceful shutdown."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize lifecycle manager."""
         self.is_shutting_down = False
         self.shutdown_timeout_seconds = 30
         self.active_runs = 0
         self.active_requests = 0
-        self.shutdown_callbacks: List[Callable] = []
-        self.startup_callbacks: List[Callable] = []
-        self.shutdown_events: List[ShutdownEvent] = []
+        self.shutdown_callbacks: list[Callable[..., Any]] = []
+        self.startup_callbacks: list[Callable[..., Any]] = []
+        self.shutdown_events: list[ShutdownEvent] = []
 
-    def register_shutdown_callback(self, callback: Callable) -> None:
+    def register_shutdown_callback(self, callback: Callable[..., Any]) -> None:
         """Register callback to execute on shutdown.
 
         Args:
@@ -39,7 +40,7 @@ class LifecycleManager:
         """
         self.shutdown_callbacks.append(callback)
 
-    def register_startup_callback(self, callback: Callable) -> None:
+    def register_startup_callback(self, callback: Callable[..., Any]) -> None:
         """Register callback to execute on startup.
 
         Args:
@@ -128,7 +129,7 @@ class LifecycleManager:
         """Decrement active request counter."""
         self.active_requests = max(0, self.active_requests - 1)
 
-    def get_shutdown_status(self) -> dict:
+    def get_shutdown_status(self) -> dict[str, Any]:
         """Get current shutdown status.
 
         Returns:
@@ -143,7 +144,7 @@ class LifecycleManager:
 
 
 # Global lifecycle manager
-_lifecycle_manager: Optional[LifecycleManager] = None
+_lifecycle_manager: LifecycleManager | None = None
 
 
 def get_lifecycle_manager() -> LifecycleManager:
@@ -165,10 +166,10 @@ def register_signal_handlers(manager: LifecycleManager) -> None:
         manager: LifecycleManager instance
     """
 
-    def handle_sigterm(signum, frame):
+    def handle_sigterm(signum: int, frame: Any) -> None:
         asyncio.create_task(manager.shutdown("TERM", graceful=True))
 
-    def handle_sigint(signum, frame):
+    def handle_sigint(signum: int, frame: Any) -> None:
         asyncio.create_task(manager.shutdown("INT", graceful=True))
 
     signal.signal(signal.SIGTERM, handle_sigterm)

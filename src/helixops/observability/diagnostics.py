@@ -1,6 +1,5 @@
 """Performance diagnostics and bottleneck detection."""
 
-from typing import List, Dict, Optional
 from helixops.observability.metrics import TaskMetrics
 from helixops.observability.reports import Bottleneck, WorkflowReport
 
@@ -9,7 +8,7 @@ class PerformanceDiagnostics:
     """Analyzes execution for performance issues."""
 
     @staticmethod
-    def identify_bottlenecks(tasks: List[TaskMetrics], percentile: float = 0.9) -> List[Bottleneck]:
+    def identify_bottlenecks(tasks: list[TaskMetrics], percentile: float = 0.9) -> list[Bottleneck]:
         """Identify slow tasks that are bottlenecks.
 
         Args:
@@ -40,7 +39,7 @@ class PerformanceDiagnostics:
         return sorted(bottlenecks, key=lambda b: b.duration_ms, reverse=True)
 
     @staticmethod
-    def identify_retry_heavy_tasks(tasks: List[TaskMetrics], threshold: int = 2) -> List[str]:
+    def identify_retry_heavy_tasks(tasks: list[TaskMetrics], threshold: int = 2) -> list[str]:
         """Identify tasks with excessive retries.
 
         Args:
@@ -53,7 +52,7 @@ class PerformanceDiagnostics:
         return [t.task_id for t in tasks if t.retry_count >= threshold]
 
     @staticmethod
-    def generate_warnings(tasks: List[TaskMetrics]) -> List[str]:
+    def generate_warnings(tasks: list[TaskMetrics]) -> list[str]:
         """Generate warnings about execution issues.
 
         Args:
@@ -82,12 +81,14 @@ class PerformanceDiagnostics:
             avg = sum(durations) / len(durations)
             max_duration = max(durations)
             if max_duration > avg * 10:
-                warnings.append(f"Large task duration variance: max is {max_duration / avg:.1f}x average")
+                warnings.append(
+                    f"Large task duration variance: max is {max_duration / avg:.1f}x average"
+                )
 
         return warnings
 
 
-def analyze_workflow(report: WorkflowReport, tasks: List[TaskMetrics]) -> None:
+def analyze_workflow(report: WorkflowReport, tasks: list[TaskMetrics]) -> None:
     """Analyze workflow and populate report with diagnostics.
 
     Args:

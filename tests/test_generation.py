@@ -2,9 +2,9 @@
 
 import pytest
 
+from helixops.generation.benchmarks import BenchmarkSuite, WorkloadLibrary
 from helixops.generation.generator import EdgeCaseGenerator, SyntheticWorkflowGenerator
 from helixops.generation.models import SyntheticWorkloadConfig, WorkloadProfile
-from helixops.generation.benchmarks import BenchmarkSuite, WorkloadLibrary
 
 
 class TestSyntheticWorkflowGenerator:
@@ -43,7 +43,9 @@ class TestSyntheticWorkflowGenerator:
         workflow2 = SyntheticWorkflowGenerator(config2).generate()
 
         # Tasks should be different
-        assert workflow1.tasks != workflow2.tasks or workflow1.dependencies != workflow2.dependencies
+        assert (
+            workflow1.tasks != workflow2.tasks or workflow1.dependencies != workflow2.dependencies
+        )
 
     def test_profile_produces_expected_task_counts(self) -> None:
         """Different profiles should produce appropriate task counts."""
@@ -86,7 +88,7 @@ class TestSyntheticWorkflowGenerator:
         workflow = SyntheticWorkflowGenerator(config).generate()
 
         assert len(workflow.failure_profiles) == len(workflow.tasks)
-        for task_id, profile in workflow.failure_profiles.items():
+        for _task_id, profile in workflow.failure_profiles.items():
             assert "failure_class" in profile
             assert "probability" in profile
             assert "retryable" in profile
@@ -101,7 +103,7 @@ class TestSyntheticWorkflowGenerator:
         workflow = SyntheticWorkflowGenerator(config).generate()
 
         assert len(workflow.retry_policies) == len(workflow.tasks)
-        for task_id, policy in workflow.retry_policies.items():
+        for _task_id, policy in workflow.retry_policies.items():
             assert "max_attempts" in policy
             assert "initial_backoff_ms" in policy
             assert "backoff_multiplier" in policy
@@ -116,7 +118,7 @@ class TestSyntheticWorkflowGenerator:
         workflow = SyntheticWorkflowGenerator(config).generate()
 
         assert len(workflow.payloads) == len(workflow.tasks)
-        for task_id, payload in workflow.payloads.items():
+        for _task_id, payload in workflow.payloads.items():
             assert "request_id" in payload
             assert "task_seed" in payload
             assert "data_size_bytes" in payload
@@ -297,7 +299,7 @@ class TestEnterpriseProfiles:
         """Should generate all enterprise profiles."""
         from helixops.generation.profiles import EnterpriseProfiles
 
-        for profile_name in EnterpriseProfiles.PROFILES.keys():
+        for profile_name in EnterpriseProfiles.PROFILES:
             workflow = EnterpriseProfiles.generate(profile_name, seed=9000)
             assert len(workflow.tasks) > 0
             assert "enterprise_profile" in workflow.metadata
@@ -351,11 +353,11 @@ class TestProfileExamples:
 
         assert len(examples) > 10
         # Should have standard profiles
-        assert any("standard_" in name for name in examples.keys())
+        assert any("standard_" in name for name in examples)
         # Should have enterprise profiles
-        assert any("enterprise_" in name for name in examples.keys())
+        assert any("enterprise_" in name for name in examples)
         # Should have pathological profiles
-        assert any("pathological_" in name for name in examples.keys())
+        assert any("pathological_" in name for name in examples)
 
 
 class TestWorkloadDiversity:
@@ -365,7 +367,12 @@ class TestWorkloadDiversity:
         """Different profiles should produce distinctly different workflows."""
         workflows = {}
 
-        for profile in [WorkloadProfile.TINY, WorkloadProfile.BALANCED, WorkloadProfile.WIDE, WorkloadProfile.DEEP]:
+        for profile in [
+            WorkloadProfile.TINY,
+            WorkloadProfile.BALANCED,
+            WorkloadProfile.WIDE,
+            WorkloadProfile.DEEP,
+        ]:
             config = SyntheticWorkloadConfig(
                 profile=profile,
                 seed=100,
@@ -373,16 +380,20 @@ class TestWorkloadDiversity:
             workflows[profile] = SyntheticWorkflowGenerator(config).generate()
 
         # TINY should be smaller than others
-        assert len(workflows[WorkloadProfile.TINY].tasks) < len(workflows[WorkloadProfile.BALANCED].tasks)
+        assert len(workflows[WorkloadProfile.TINY].tasks) < len(
+            workflows[WorkloadProfile.BALANCED].tasks
+        )
 
         # WIDE should have many parallel dependencies
         wide_deps = len(workflows[WorkloadProfile.WIDE].dependencies)
         wide_tasks = len(workflows[WorkloadProfile.WIDE].tasks)
-        tiny_deps = len(workflows[WorkloadProfile.TINY].dependencies)
+        len(workflows[WorkloadProfile.TINY].dependencies)
 
         # WIDE should have fewer edges relative to tasks (parallel = low edge count)
         wide_ratio = wide_deps / wide_tasks if wide_tasks > 0 else 0
         # DEEP should have many edges relative to tasks (sequential = high edge count)
-        deep_ratio = len(workflows[WorkloadProfile.DEEP].dependencies) / len(workflows[WorkloadProfile.DEEP].tasks)
+        deep_ratio = len(workflows[WorkloadProfile.DEEP].dependencies) / len(
+            workflows[WorkloadProfile.DEEP].tasks
+        )
 
         assert wide_ratio < deep_ratio

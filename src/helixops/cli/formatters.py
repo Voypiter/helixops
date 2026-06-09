@@ -2,10 +2,9 @@
 
 import json
 from dataclasses import asdict
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from helixops.cli.models import OutputFormat, CLIResult
+from helixops.cli.models import CLIResult, OutputFormat
 
 
 class OutputFormatter:
@@ -182,7 +181,7 @@ class ErrorFormatter:
     def format_error(
         message: str,
         error_type: str = "runtime",
-        details: Optional[List[str]] = None,
+        details: list[str] | None = None,
         format_type: OutputFormat = OutputFormat.TEXT,
     ) -> str:
         """Format an error message.
@@ -221,7 +220,7 @@ class SuccessFormatter:
     @staticmethod
     def format_success(
         message: str,
-        data: Optional[Dict] = None,
+        data: dict[str, Any] | None = None,
         format_type: OutputFormat = OutputFormat.TEXT,
     ) -> str:
         """Format a success message.
